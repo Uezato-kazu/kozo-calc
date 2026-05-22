@@ -1,0 +1,1494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="構造計算">
+<meta name="theme-color" content="#ffffff">
+<title>構造計算電卓</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+html,body{height:100%;background:#e8e8e8;font-family:'Helvetica Neue',Arial,sans-serif;}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:430px;margin:0 auto;background:#f2f2f2;border-left:1px solid #ccc;border-right:1px solid #ccc;overflow:hidden;}
+
+/* ── メニューバー ── */
+.menubar{background:#fff;border-bottom:1px solid #ddd;padding:5px 6px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.menubar-row1{display:flex;align-items:center;gap:5px;}
+.calc-items-bar{flex:1;display:flex;gap:3px;flex-wrap:wrap;justify-content:center;min-height:28px;align-items:center;}
+.calc-item-chip{padding:3px 7px;border-radius:10px;border:1px solid #4477cc;background:#f0f4ff;color:#4477cc;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;line-height:1.3;}
+.calc-item-chip.active{background:#4477cc;color:#fff;}
+.calc-item-chip:active{opacity:0.7;}
+.btn-fml-open{flex-shrink:0;padding:5px 12px;border-radius:12px;border:1px solid #4477cc;background:#4477cc;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-fml-open:active{background:#2255aa;}
+.btn-fml-clear{flex-shrink:0;padding:5px 10px;border-radius:12px;border:1px solid #cc4444;background:#cc4444;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-fml-clear:active{background:#aa2222;}
+
+/* ── 公式表示 ── */
+.fscreen{background:#fff;border:1px solid #c8e0c8;border-radius:6px;margin:4px 6px 2px;padding:6px 10px;flex-shrink:0;min-height:44px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.fscreen-inner{display:flex;align-items:flex-start;gap:8px;}
+.fscreen-left{flex:1;min-width:0;}
+.fscreen-right{flex-shrink:0;width:100px;display:flex;align-items:center;justify-content:center;border-left:1px solid #d8ecd8;padding-left:8px;min-height:42px;}
+.fscreen-right svg{max-width:100%;height:auto;}
+.fsl{font-size:9px;color:#4a8a4a;letter-spacing:.1em;margin-bottom:2px;font-weight:600;}
+.fsf{font-family:'Courier New',monospace;font-size:12px;color:#1a4a1a;line-height:1.6;word-break:break-all;}
+.vsym{color:#c05800;border-bottom:1px solid #c05800;padding:0 2px;font-style:italic;font-weight:600;}
+.vsym.filled{color:#1a7a1a;border-color:#1a7a1a;font-style:normal;}
+.fsdesc{font-size:10px;color:#6a8a6a;margin-top:2px;}
+
+/* ── 変数パネル ── */
+.vpanel{background:#fff;border-radius:6px;margin:0 6px 2px;padding:5px 7px;flex-shrink:0;display:none;border:1px solid #dde;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.vpanel.on{display:block;}
+.vptitle{font-size:9px;color:#7777aa;margin-bottom:4px;font-weight:600;}
+.vslots{display:flex;gap:4px;flex-wrap:wrap;}
+.vs{flex:1;min-width:52px;background:#f8f8ff;border:1px solid #ccd;border-radius:5px;padding:4px 6px;cursor:pointer;}
+.vs.act{border-color:#e07800;background:#fff8ee;}
+.vs.done{border-color:#4a9a4a;background:#f0fff0;}
+.vssym{font-size:11px;color:#c05800;font-family:monospace;font-style:italic;font-weight:700;}
+.vs.done .vssym{color:#2a7a2a;font-style:normal;}
+.vsval{font-size:13px;color:#222;font-family:'Courier New',monospace;min-height:16px;font-weight:600;}
+.vsunit{font-size:9px;color:#999;margin-top:1px;}
+
+/* ── LCD ── */
+.lcd{background:#fff;margin:4px 6px 2px;border-radius:6px;border:2px solid #aaccaa;padding:6px 10px 7px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+.lcd-status{display:flex;justify-content:space-between;margin-bottom:3px;}
+.lcd-flags{display:flex;gap:8px;}
+.lcd-flag{font-size:10px;color:#bbb;font-family:'Courier New',monospace;}
+.lcd-flag.on{color:#333;font-weight:bold;}
+.btn-paste{padding:2px 7px;border-radius:6px;border:1px solid #aaccaa;background:#f0fff0;color:#2a6a2a;font-size:10px;font-weight:600;cursor:pointer;}
+.btn-paste:active{background:#d0efd0;}
+.lcd-expr-wrap{min-height:24px;margin-bottom:3px;overflow:hidden;}
+.lcd-expr{font-family:'Courier New',monospace;font-size:15px;color:#333;line-height:1.5;word-break:break-all;white-space:pre-wrap;display:inline;}
+.cursor{display:inline-block;width:2px;height:16px;background:#333;vertical-align:middle;animation:blink .8s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
+.lcd-result{font-family:'Courier New',monospace;font-size:26px;font-weight:700;color:#111;text-align:right;min-height:32px;line-height:1.2;word-break:break-all;}
+
+/* ── 履歴 ── */
+.hist-bar{display:flex;align-items:center;justify-content:space-between;padding:2px 10px;flex-shrink:0;}
+.hist-label{font-size:10px;color:#888;letter-spacing:.06em;}
+.hist-clr{font-size:10px;color:#cc4444;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.hist-clr:active{background:#ffeeee;}
+.hist-panel{background:#fff;margin:0 6px 2px;border-radius:5px;border:1px solid #ddd;max-height:66px;overflow-y:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-shrink:0;display:none;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.hist-panel::-webkit-scrollbar{display:none;}
+.hist-panel.has-items{display:block;}
+.hist-item{padding:4px 10px;border-bottom:1px solid #f0f0f0;cursor:pointer;}
+.hist-item:last-child{border-bottom:none;}
+.hist-item:active{background:#f5f5f5;}
+.hist-expr{font-family:'Courier New',monospace;font-size:11px;color:#555;line-height:1.3;}
+.hist-calc{font-family:'Courier New',monospace;font-size:10px;color:#2a6a2a;line-height:1.4;margin-top:1px;}
+.hist-res{font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#111;text-align:right;}
+/* 履歴メニュー */
+.hist-menu{position:fixed;background:#fff;border:1px solid #ccc;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.2);z-index:200;overflow:hidden;min-width:160px;}
+.hist-menu-btn{display:block;width:100%;padding:12px 18px;border:none;background:#fff;text-align:left;font-size:14px;color:#222;cursor:pointer;border-bottom:1px solid #f0f0f0;}
+.hist-menu-btn:last-child{border-bottom:none;color:#888;}
+.hist-menu-btn:active{background:#f5f5f5;}
+
+/* ── 電卓本体 ── */
+.body{flex:1;overflow:hidden;background:linear-gradient(180deg,#e0e4ee 0%,#d8dce8 100%);padding:4px 5px 5px;display:flex;flex-direction:column;gap:3px;}
+.row{display:flex;gap:3px;flex:1;}
+.k{flex:1;border-radius:6px;border:none;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;transition:filter .06s,transform .06s;box-shadow:0 2px 0 rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.6) inset;}
+.k:active{filter:brightness(0.88);transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
+.k.drk{background:#c8ccd8;}.k.del{background:#e8a000;}.k.ac{background:#e8a000;}
+.k.num{background:#fff;}.k.op{background:#d0d4e0;}.k.eq{background:#3366cc;}.k.shft{background:#c0c4a0;}
+.km{font-size:16px;font-weight:600;color:#222;line-height:1;}
+.km2{font-size:12px;font-weight:500;color:#222;}
+.ks-top{font-size:8px;color:#c07000;position:absolute;top:2px;left:0;right:0;text-align:center;line-height:1;}
+.ks-bot{font-size:7px;color:#4466aa;position:absolute;bottom:2px;left:0;right:0;text-align:center;}
+.ks-red{font-size:8px;color:#cc2222;position:absolute;top:2px;left:0;right:0;text-align:center;}
+.nav-wrap{flex:3;display:flex;align-items:stretch;}
+.nav-pad{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;gap:2px;width:100%;height:100%;}
+.nav-c{background:#b8bcc8;border-radius:5px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px;box-shadow:0 1px 0 rgba(0,0,0,0.2);transition:filter .06s;}
+.nav-c:active{filter:brightness(0.85);}
+.nav-center{background:#a8acc0;font-size:11px;color:#222;font-weight:600;}
+
+/* 分数表示 */
+.frac-wrap{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;}
+.frac-num{border-bottom:1.5px solid #333;padding:0 3px;min-width:16px;text-align:center;line-height:1.4;}
+.frac-den{padding:0 3px;min-width:16px;text-align:center;line-height:1.4;}
+.frac-cursor{display:inline-block;width:2px;height:14px;background:#333;vertical-align:middle;animation:blink .8s step-end infinite;}
+@media(orientation:landscape){
+  .app{flex-direction:row;max-width:100%;}
+  .left-pane{display:flex;flex-direction:column;flex:1;overflow:hidden;border-right:1px solid #ccc;}
+  .right-pane{display:flex;flex-direction:column;flex:1;}
+  .left-pane .hist-panel{max-height:none;flex:1;display:block!important;overflow-y:auto;}
+  .left-pane .hist-bar{display:flex!important;}
+  .left-pane .vpanel.on{max-height:72px;overflow-y:auto;}
+  .left-pane .vs{padding:2px 4px;}
+  .left-pane .vsval{font-size:11px;}
+  .left-pane .vssym{font-size:9px;}
+  .left-pane .vsunit{font-size:8px;display:block;}
+  .left-pane .lcd{padding:3px 6px 4px;}
+  .left-pane .lcd-result{font-size:18px;min-height:22px;}
+  .left-pane .lcd-expr{font-size:11px;}
+  .left-pane .lcd-expr-wrap{min-height:16px;}
+  .left-pane .cursor{height:12px;}
+  .left-pane .lcd-flag{font-size:8px;}
+  .left-pane .lcd-status{margin-bottom:1px;}
+}
+@media(orientation:portrait){
+  .left-pane{display:contents;}
+  .right-pane{display:contents;}
+}
+
+/* ══════════════════════════════════
+   公式モーダル（3ステップ）
+══════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:flex-start;justify-content:center;padding-top:env(safe-area-inset-top);}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:12px;width:calc(100% - 16px);max-width:420px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;margin-top:6px;box-shadow:0 8px 32px rgba(0,0,0,0.25);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px;border-bottom:1px solid #eee;flex-shrink:0;background:#f8f8f8;}
+.modal-title{font-size:15px;font-weight:700;color:#222;}
+.modal-close{background:none;border:none;color:#999;font-size:22px;cursor:pointer;padding:0 4px;line-height:1;}
+.modal-back{background:none;border:none;color:#4477cc;font-size:13px;cursor:pointer;padding:0 4px;font-weight:600;}
+.modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;}
+
+/* ステップ1: カテゴリ・公式リスト */
+.fcat-header{padding:8px 14px 5px;font-size:12px;font-weight:700;color:#fff;background:#4477cc;border-bottom:1px solid #3366bb;position:sticky;top:0;z-index:1;}
+.fsubcat-header{padding:5px 14px 4px;font-size:11px;color:#555;font-weight:600;background:#f5f5f5;border-bottom:1px solid #eee;}
+.fml-item{padding:10px 12px;border-bottom:1px solid #f0f0f0;cursor:pointer;display:flex;align-items:center;gap:10px;}
+.fml-item:active{background:#f0f4ff;}
+.fml-item-svg{flex-shrink:0;width:90px;}
+.fml-item-info{flex:1;min-width:0;}
+.fml-item-name{font-size:13px;color:#222;font-weight:600;margin-bottom:2px;}
+.fml-item-formula{font-family:'Courier New',monospace;font-size:10px;color:#2a6a2a;line-height:1.4;}
+.fml-item-desc{font-size:10px;color:#888;}
+
+/* ステップ2: 計算項目選択 */
+.calc-item-list{padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.calc-item-header{font-size:13px;color:#444;font-weight:600;margin-bottom:4px;}
+.calc-item-btn{padding:12px 14px;background:#f8f8ff;border:1px solid #ccd;border-radius:8px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:3px;}
+.calc-item-btn:active{background:#e8e8ff;}
+.calc-item-name{font-size:13px;color:#222;font-weight:600;}
+.calc-item-formula{font-family:'Courier New',monospace;font-size:11px;color:#3366aa;}
+.calc-item-vars{font-size:10px;color:#888;}
+.calc-diagram{padding:10px 12px 0;text-align:center;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="left-pane">
+
+<div class="menubar">
+  <div class="menubar-row1">
+    <button class="btn-fml-open" onclick="openModal()">📐 公式</button>
+    <div class="calc-items-bar" id="calc-items-bar"></div>
+    <button class="btn-fml-clear" onclick="kClearFormula()">クリア</button>
+  </div>
+</div>
+
+<div class="fscreen">
+  <div class="fsl">FORMULA</div>
+  <div class="fscreen-inner">
+    <div class="fscreen-left">
+      <div class="fsf" id="fsf" style="color:#3a7a3a;font-style:italic">— 「公式」から公式と計算項目を選択 —</div>
+      <div class="fsdesc" id="fsdesc"></div>
+    </div>
+    <div class="fscreen-right" id="fscreen-diag"></div>
+  </div>
+</div>
+
+<div class="vpanel" id="vp">
+  <div class="vptitle" id="vptitle">▶ 変数をタップ → 数式入力可 → = で確定</div>
+  <div class="vslots" id="vslots"></div>
+</div>
+
+<div class="lcd">
+  <div class="lcd-status">
+    <div class="lcd-flags">
+      <span class="lcd-flag" id="flag-m">M</span>
+      <span class="lcd-flag" id="flag-shift">SHIFT</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn-paste" onclick="kPaste()" title="クリップボードからペースト">貼付</button>
+      <div class="lcd-flag on">DEG</div>
+    </div>
+  </div>
+  <div class="lcd-expr-wrap"><span class="lcd-expr" id="lcd-expr"></span><span class="cursor"></span></div>
+  <div class="lcd-result" id="lcd-result"></div>
+</div>
+
+<div class="hist-bar" id="hist-bar" style="display:none">
+  <span class="hist-label">履歴（タップで再利用）</span>
+  <button class="hist-clr" onclick="clearHistory()">消去</button>
+</div>
+<div class="hist-panel" id="hist-panel"></div>
+
+</div><!-- /left-pane -->
+<div class="right-pane">
+
+<div class="body">
+  <div class="row">
+    <button class="k shft" onclick="toggleShift()" id="btn-shift"><span class="km2" style="color:#886600;font-size:11px">SHIFT</span></button>
+    <div class="nav-wrap">
+      <div class="nav-pad">
+        <div></div><button class="nav-c" onclick="navUp()">▲</button><div></div>
+        <button class="nav-c" onclick="navLeft()">◀</button>
+        <button class="nav-c nav-center" onclick="kEqual()">OK</button>
+        <button class="nav-c" onclick="navRight()">▶</button>
+        <div></div><button class="nav-c" onclick="navDown()">▼</button><div></div>
+      </div>
+    </div>
+    <button class="k del" onclick="kBS()"><span class="ks-top" style="color:#fff;font-size:7px">INS</span><span class="km" style="color:#fff;font-size:13px;font-weight:700">DEL</span></button>
+    <button class="k ac"  onclick="kAC()"><span class="km" style="color:#fff;font-size:13px;font-weight:700">AC</span></button>
+  </div>
+  <div class="row">
+    <button class="k drk" onclick="kFrac()"><span class="ks-top">÷R</span><span class="km" style="font-size:13px">□/□</span></button>
+    <button class="k drk" onclick="kShiftable('sqrt','cbrt')"><span class="ks-top">³√</span><span class="km" style="font-size:15px">√</span></button>
+    <button class="k drk" onclick="kShiftable('sq','inv')"><span class="ks-top">x⁻¹</span><span class="km" style="font-size:13px">x²</span></button>
+    <button class="k drk" onclick="kShiftable('pow','xrt')"><span class="ks-top">√□</span><span class="km" style="font-size:13px">xⁿ</span></button>
+    <button class="k drk" onclick="kShiftable('log','pow10')"><span class="ks-top">10ˣ</span><span class="km" style="font-size:13px">log</span></button>
+    <button class="k drk" onclick="kShiftable('ln','powe')"><span class="ks-top">eˣ</span><span class="km" style="font-size:13px">ln</span></button>
+  </div>
+  <div class="row">
+    <button class="k drk" onclick="kNeg()"><span class="km">(−)</span></button>
+    <button class="k drk" onclick="kShiftable('pi','euler')"><span class="ks-top">e</span><span class="km" style="font-size:14px">π</span></button>
+    <button class="k drk" onclick="kShiftable('inv','abs')"><span class="ks-top">Abs</span><span class="km" style="font-size:13px">x⁻¹</span></button>
+    <button class="k drk" onclick="kShiftable('sin','asin')"><span class="ks-top">sin⁻¹</span><span class="km" style="font-size:13px">sin</span></button>
+    <button class="k drk" onclick="kShiftable('cos','acos')"><span class="ks-top">cos⁻¹</span><span class="km" style="font-size:13px">cos</span></button>
+    <button class="k drk" onclick="kShiftable('tan','atan')"><span class="ks-top">tan⁻¹</span><span class="km" style="font-size:13px">tan</span></button>
+  </div>
+  <div class="row">
+    <button class="k drk" onclick="kSto()"><span class="ks-red">RCL</span><span class="km2" style="font-size:11px">STO</span></button>
+    <button class="k drk" onclick="kEng()"><span class="km2" style="font-size:11px">ENG</span></button>
+    <button class="k drk" onclick="insertToken('(')"><span class="km" style="font-size:15px">(</span></button>
+    <button class="k drk" onclick="insertToken(')')"><span class="km" style="font-size:15px">)</span></button>
+    <button class="k drk" onclick="kSD()"><span class="km2" style="font-size:10px">S↔D</span></button>
+    <button class="k drk" onclick="kMplus()"><span class="ks-red">M−</span><span class="km2" style="font-size:11px">M+</span></button>
+  </div>
+  <div class="row">
+    <button class="k num" onclick="kN('7')"><span class="km">7</span></button>
+    <button class="k num" onclick="kN('8')"><span class="km">8</span></button>
+    <button class="k num" onclick="kN('9')"><span class="km">9</span></button>
+    <button class="k op"  onclick="insertToken('×')"><span class="ks-top">nPr</span><span class="km">×</span></button>
+    <button class="k op"  onclick="insertToken('÷')"><span class="ks-top">nCr</span><span class="km">÷</span></button>
+  </div>
+  <div class="row">
+    <button class="k num" onclick="kN('4')"><span class="km">4</span></button>
+    <button class="k num" onclick="kN('5')"><span class="km">5</span></button>
+    <button class="k num" onclick="kN('6')"><span class="km">6</span></button>
+    <button class="k op"  onclick="insertToken('+')"><span class="ks-top">%</span><span class="km">+</span></button>
+    <button class="k op"  onclick="insertToken('-')"><span class="km">−</span></button>
+  </div>
+  <div class="row">
+    <button class="k num" onclick="kN('1')"><span class="km">1</span></button>
+    <button class="k num" onclick="kN('2')"><span class="km">2</span></button>
+    <button class="k num" onclick="kN('3')"><span class="km">3</span></button>
+    <button class="k op"  onclick="insertToken('+')"><span class="km">+</span></button>
+    <button class="k op"  onclick="insertToken('-')"><span class="km">−</span></button>
+  </div>
+  <div class="row">
+    <button class="k num" onclick="kN('0')"><span class="km">0</span></button>
+    <button class="k num" onclick="kDot()"><span class="km">•</span></button>
+    <button class="k op"  onclick="insertExp()"><span class="km2" style="font-size:11px">×10ˣ</span></button>
+    <button class="k op"  onclick="insertAns()"><span class="ks-bot" style="color:#4466aa">PreAns</span><span class="km2" style="font-size:12px">Ans</span></button>
+    <button class="k eq"  onclick="kEqual()"><span class="km" style="font-size:20px;color:#fff">=</span></button>
+  </div>
+</div>
+
+</div><!-- /right-pane -->
+</div><!-- /app -->
+
+<!-- 公式モーダル -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="modal-back" id="modal-back" onclick="modalBack()" style="display:none">← 戻る</button>
+      <span class="modal-title" id="modal-title">📐 梁の公式集</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SVG 図面生成ヘルパー
+   ============================================================ */
+const W=90,H=48; // モーダルリスト用の小サイズ
+const WD=240,HD=110; // 詳細用の大サイズ
+
+function svgBeam(x1,y,x2){return '<line x1="'+x1+'" y1="'+y+'" x2="'+x2+'" y2="'+y+'" stroke="#333" stroke-width="3"/>';}
+function svgPinSupport(x,y){return '<polygon points="'+x+','+y+' '+(x-6)+','+(y+10)+' '+(x+6)+','+(y+10)+'" fill="#555"/><line x1="'+(x-8)+'" y1="'+(y+11)+'" x2="'+(x+8)+'" y2="'+(y+11)+'" stroke="#555" stroke-width="1.5"/>';}
+function svgRollerSupport(x,y){return '<polygon points="'+x+','+y+' '+(x-6)+','+(y+10)+' '+(x+6)+','+(y+10)+'" fill="#555"/><circle cx="'+x+'" cy="'+(y+14)+'" r="3" fill="none" stroke="#555" stroke-width="1.5"/>';}
+function svgFixedEnd(x,y1,y2,side){
+  var d=side==='L'?-5:5;
+  return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="#555" stroke-width="4"/>'
+    +'<line x1="'+(x+d)+'" y1="'+y1+'" x2="'+(x+d)+'" y2="'+y2+'" stroke="#555" stroke-width="1.5"/>';
+}
+function svgArrowDown(x,y1,y2,color){color=color||'#3366cc';return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+y2+'" stroke="'+color+'" stroke-width="1.5" marker-end="url(#ad'+color.replace('#','')+')"/>';}
+function svgDistLoad(x1,x2,y,color){
+  color=color||'#3366cc';
+  var s='<line x1="'+x1+'" y1="'+(y-10)+'" x2="'+x2+'" y2="'+(y-10)+'" stroke="'+color+'" stroke-width="1.5"/>';
+  for(var x=x1;x<=x2;x+=8) s+='<line x1="'+x+'" y1="'+(y-10)+'" x2="'+x+'" y2="'+y+'" stroke="'+color+'" stroke-width="1"/>';
+  s+='<polygon points="'+x2+','+y+' '+(x2-3)+','+(y-6)+' '+(x2+3)+','+(y-6)+'" fill="'+color+'"/>';
+  return s;
+}
+function svgLabel(x,y,txt,fs,color){
+  fs=fs||8;color=color||'#333';
+  return '<text x="'+x+'" y="'+y+'" font-size="'+fs+'" fill="'+color+'" text-anchor="middle" font-family="sans-serif">'+txt+'</text>';
+}
+function svgDefs(){
+  return '<defs>'
+    +'<marker id="ad3366cc" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">'
+    +'<polygon points="0,0 6,3 0,6" fill="#3366cc"/></marker>'
+    +'<marker id="adcc2222" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">'
+    +'<polygon points="0,0 6,3 0,6" fill="#cc2222"/></marker>'
+    +'</defs>';
+}
+
+// 各公式の小SVG（リスト用）
+function mksvg(w,h,content){return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+content+'</svg>';}
+function poly(pts,fill,stroke,sw){return '<polygon points="'+pts+'" fill="'+(fill||'none')+'" stroke="'+(stroke||'#3366cc')+'" stroke-width="'+(sw||'1.2')+'" />';}
+function line2(x1,y1,x2,y2,stroke,sw){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(stroke||'#3366cc')+'" stroke-width="'+(sw||'1.5')+'" />';}
+function pathM(d,stroke,sw){return '<path d="'+d+'" stroke="'+(stroke||'#3366cc')+'" stroke-width="'+(sw||'1.5')+'" fill="none" marker-end="url(#ad3366cc)" />';}
+function arrowHead(x,y,color){return poly(''+x+','+y+' '+(x-3)+','+(y-6)+' '+(x+3)+','+(y-6),color||'#3366cc','none',0);}
+function arrowVert(x,y1,y2,color){color=color||'#3366cc';return line2(x,y1,x,y2,color,1.5)+arrowHead(x,y2,color);}
+function dimLine(x1,y,x2,t,c){return line2(x1,y,x2,y,c||'#888',1)+svgLabel((x1+x2)/2,y+10,t,8,c||'#888');}
+function diagSmall(id){
+  var bY=30,bX1=12,bX2=78,mid=45;
+  var B=svgBeam(bX1,bY,bX2),D=svgDefs();
+  var pin1=svgPinSupport(bX1,bY),rol2=svgRollerSupport(bX2,bY);
+  var fix1=svgFixedEnd(bX1,bY-6,bY+6,'L'),fix2=svgFixedEnd(bX2,bY-6,bY+6,'R');
+  // 等分布荷重：外形のみ（矢印なし）
+  function distPoly(x1,x2,h){return poly(''+x1+','+bY+' '+x1+','+(bY-h)+' '+x2+','+(bY-h)+' '+x2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.5);}
+  switch(id){
+    // ── 片持ち梁 ──
+    case 'c1': return mksvg(90,48,D+fix2+B+arrowVert(bX1,14,bY-1,'#3366cc')+svgLabel(bX1,12,'P',8,'#3366cc'));
+    case 'c2': return mksvg(90,48,D+fix2+B+arrowVert(bX1+20,12,bY-1,'#3366cc')+svgLabel(bX1+20,10,'P',8,'#3366cc'));
+    case 'c3': return mksvg(90,48,D+fix2+B+distPoly(bX1,bX2,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'c_tri_fix': return mksvg(90,48,D+fix2+B+poly(''+bX1+','+bY+' '+bX2+','+bY+' '+bX2+','+(bY-18),'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX2+3,bY-15,'w',7,'#3366cc'));
+    case 'c_tri_tip': return mksvg(90,48,D+fix2+B+poly(''+bX1+','+bY+' '+bX1+','+(bY-18)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX1-3,bY-15,'w',7,'#3366cc'));
+    // ── 単純支持梁 ──
+    case 's1': return mksvg(90,48,D+pin1+rol2+B+arrowVert(mid,12,bY-1,'#3366cc')+svgLabel(mid,10,'P',8,'#3366cc'));
+    case 's2': return mksvg(90,48,D+pin1+rol2+B+arrowVert(bX1+22,12,bY-1,'#3366cc')+svgLabel(bX1+22,10,'P',8,'#3366cc'));
+    case 's3': return mksvg(90,48,D+pin1+rol2+B+arrowVert(bX1+22,12,bY-1,'#3366cc')+arrowVert(bX1+44,12,bY-1,'#3366cc')+svgLabel(bX1+22,10,'P',8,'#3366cc')+svgLabel(bX1+44,10,'P',8,'#3366cc'));
+    case 's4': return mksvg(90,48,D+pin1+rol2+B+arrowVert(28,12,bY-1,'#3366cc')+arrowVert(mid,12,bY-1,'#3366cc')+arrowVert(62,12,bY-1,'#3366cc')+svgLabel(28,10,'P',8,'#3366cc')+svgLabel(mid,10,'P',8,'#3366cc')+svgLabel(62,10,'P',8,'#3366cc'));
+    case 'sw': return mksvg(90,48,D+pin1+rol2+B+distPoly(bX1,bX2,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'sw_part': return mksvg(90,48,D+pin1+rol2+B+distPoly(bX1+14,bX2-14,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'st1': return mksvg(90,48,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+bX2+','+bY+' '+bX2+','+(bY-18),'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX2+3,bY-16,'w',7,'#3366cc'));
+    case 'st2': return mksvg(90,48,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+mid+','+(bY-16)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(mid,bY-19,'w',7,'#3366cc'));
+    // ── 両端固定梁 ──
+    case 'f1': return mksvg(90,48,D+fix1+fix2+B+arrowVert(mid,12,bY-1,'#3366cc')+svgLabel(mid,10,'P',8,'#3366cc'));
+    case 'f2': return mksvg(90,48,D+fix1+fix2+B+arrowVert(bX1+22,12,bY-1,'#3366cc')+svgLabel(bX1+22,10,'P',8,'#3366cc'));
+    case 'f3': return mksvg(90,48,D+fix1+fix2+B+arrowVert(bX1+22,12,bY-1,'#3366cc')+arrowVert(bX1+44,12,bY-1,'#3366cc')+svgLabel(bX1+22,10,'P',8,'#3366cc')+svgLabel(bX1+44,10,'P',8,'#3366cc'));
+    case 'f4': return mksvg(90,48,D+fix1+fix2+B+arrowVert(bX1+16,12,bY-1,'#3366cc')+arrowVert(bX1+33,12,bY-1,'#3366cc')+arrowVert(bX1+50,12,bY-1,'#3366cc')+svgLabel(bX1+16,10,'P',8,'#3366cc')+svgLabel(bX1+33,10,'P',8,'#3366cc')+svgLabel(bX1+50,10,'P',8,'#3366cc'));
+    case 'fw': return mksvg(90,48,D+fix1+fix2+B+distPoly(bX1,bX2,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'fw_part': return mksvg(90,48,D+fix1+fix2+B+distPoly(bX1+14,bX2-14,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'fw_tri': return mksvg(90,48,D+fix1+fix2+B+poly(''+bX1+','+bY+' '+bX2+','+bY+' '+bX2+','+(bY-18),'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX2+3,bY-15,'w',7,'#3366cc'));
+    case 'fw_tri2': return mksvg(90,48,D+fix1+fix2+B+poly(''+bX1+','+bY+' '+mid+','+(bY-16)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(mid,bY-19,'w',7,'#3366cc'));
+    // ── 連続梁 ──
+    case 'cnt': return mksvg(90,48,D+pin1+svgPinSupport(mid,bY)+rol2+B+arrowVert(bX1+17,12,bY-1,'#3366cc')+arrowVert(mid+17,12,bY-1,'#3366cc')+svgLabel(bX1+17,10,'P',7,'#3366cc')+svgLabel(mid+17,10,'P',7,'#3366cc'));
+    // ── 台形・多山分布 ──
+    case 'cnt_w': return mksvg(90,48,D+pin1+svgPinSupport(mid,bY)+rol2+B+distPoly(bX1,bX2,14)+svgLabel(mid,bY-16,'w',7,'#3366cc'));
+    case 'cnt_half': return mksvg(90,48,D+pin1+svgPinSupport(mid,bY)+rol2+B+distPoly(bX1,mid,14)+svgLabel((bX1+mid)/2,bY-16,'w',7,'#3366cc'));
+    case 's_trap': return mksvg(90,48,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+16)+','+(bY-14)+' '+(bX2-16)+','+(bY-14)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+line2(bX1+16,bY-14,bX2-16,bY-14,'#3366cc',1.5)+svgLabel(mid,bY-17,'w',7,'#3366cc'));
+    // 2山（l/2ピッチ）= 2つの二等辺三角形がスパン全体に連続
+    // 2山（l/2ピッチ）= 2つの二等辺三角形がスパン全体に連続
+    case 's_4peak': return mksvg(90,48,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+16)+','+(bY-15)+' '+(bX1+33)+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+poly(''+(bX1+33)+','+bY+' '+(bX1+49)+','+(bY-15)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX1+16,bY-17,'w',7,'#3366cc')+svgLabel(bX1+49,bY-17,'w',7,'#3366cc'));
+    // 3山（l/3ピッチ）= 3つの二等辺三角形がスパン全体に連続
+    // 3山（l/3ピッチ）= 3つの二等辺三角形がスパン全体に連続
+    case 's_6peak': return mksvg(90,48,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+11)+','+(bY-14)+' '+(bX1+22)+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+poly(''+(bX1+22)+','+bY+' '+(bX1+33)+','+(bY-14)+' '+(bX1+44)+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+poly(''+(bX1+44)+','+bY+' '+(bX1+55)+','+(bY-14)+' '+bX2+','+bY,'rgba(51,102,204,0.15)','#3366cc',1.2)+svgLabel(bX1+11,bY-16,'w',7,'#3366cc')+svgLabel(bX1+33,bY-16,'w',7,'#3366cc')+svgLabel(bX1+55,bY-16,'w',7,'#3366cc'));
+    // ── モーメント ──
+    case 's_mom': return mksvg(90,48,D+pin1+rol2+B+pathM('M'+(bX1+28)+','+(bY-12)+' A10,10 0 1,1 '+(bX1+28)+','+(bY-2),'#3366cc',1.5)+svgLabel(bX1+28,bY-23,'M',7,'#3366cc'));
+    case 's_mom_end': return mksvg(90,48,D+pin1+rol2+B+pathM('M'+bX1+','+(bY-14)+' A10,10 0 1,1 '+(bX1+10)+','+(bY-4),'#3366cc',1.5)+svgLabel(bX1,bY-25,'M',7,'#3366cc'));
+    default: return '';
+  }
+}
+function diagLarge(id){
+  var bY=50,bX1=20,bX2=200,mid=110;
+  var B=svgBeam(bX1,bY,bX2),D=svgDefs();
+  var pin1=svgPinSupport(bX1,bY),rol2=svgRollerSupport(bX2,bY);
+  var fix1=svgFixedEnd(bX1,bY-10,bY+10,'L'),fix2=svgFixedEnd(bX2,bY-10,bY+10,'R');
+  function lbl(x,y,t,s,c){return svgLabel(x,y,t,s,c);}
+  function dim(x1,y,x2,t,c){return line2(x1,y,x2,y,c||'#888',1)+svgLabel((x1+x2)/2,y+10,t,8,c||'#888');}
+  switch(id){
+    case 'c1': return mksvg(220,90,D+fix2+B+arrowVert(bX1,20,bY-2,'#3366cc')+lbl(bX1,16,'P',10,'#3366cc')+lbl(bX1,bY+20,'A',9)+lbl(bX2,bY+20,'B(fix)',9)+dim(bX1,bY+14,bX2,'l'));
+    case 'c2': return mksvg(220,90,D+fix2+B+arrowVert(bX1+50,20,bY-2,'#3366cc')+lbl(bX1+50,16,'P',10,'#3366cc')+lbl(bX1,bY+20,'A',9)+lbl(bX1+50,bY+20,'C',9)+lbl(bX2,bY+20,'B(fix)',9)+dim(bX1,bY+14,bX1+50,'b','#3366cc')+dim(bX1+50,bY+14,bX2,'a'));
+    case 'c3': return mksvg(220,90,D+fix2+B+svgDistLoad(bX1,bX2,bY)+lbl(mid,bY-16,'w',9,'#3366cc')+lbl(bX1,bY+20,'A',9)+lbl(bX2,bY+20,'B(fix)',9)+dim(bX1,bY+14,bX2,'l'));
+    case 's1': return mksvg(220,90,D+pin1+rol2+B+arrowVert(mid,20,bY-2,'#3366cc')+lbl(mid,16,'P',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(mid,bY+22,'C',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+16,bX2,'l'));
+    case 's2': return mksvg(220,90,D+pin1+rol2+B+arrowVert(bX1+70,20,bY-2,'#3366cc')+lbl(bX1+70,16,'P',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX1+70,bY+22,'C',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+16,bX1+70,'a','#3366cc')+dim(bX1+70,bY+16,bX2,'b'));
+    case 's3': return mksvg(220,90,D+pin1+rol2+B+arrowVert(bX1+60,20,bY-2,'#3366cc')+arrowVert(bX1+120,20,bY-2,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+14,bX2,'l'));
+    case 's4': return mksvg(220,90,D+pin1+rol2+B+arrowVert(bX1+45,20,bY-2,'#3366cc')+arrowVert(mid,20,bY-2,'#3366cc')+arrowVert(bX1+135,20,bY-2,'#3366cc')+dim(bX1,bY+14,bX2,'l'));
+    case 'sw': return mksvg(220,90,D+pin1+rol2+B+svgDistLoad(bX1,bX2,bY)+lbl(mid,bY-18,'w',9,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+14,bX2,'l'));
+    case 'sw_part': return mksvg(220,90,D+pin1+rol2+B+svgDistLoad(bX1+40,bX2-40,bY)+lbl(mid,bY-16,'w',9,'#3366cc')+dim(bX1,bY+16,bX1+40,'a')+dim(bX2-40,bY+16,bX2,'a')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9));
+    case 'st1': return mksvg(220,90,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+bX2+','+bY+' '+bX2+','+(bY-28),'rgba(51,102,204,0.12)','#3366cc',1.5)+arrowVert(bX1+30,bY-5,bY-1,'#3366cc')+arrowVert(bX1+60,bY-11,bY-1,'#3366cc')+arrowVert(bX1+100,bY-18,bY-1,'#3366cc')+arrowVert(bX1+140,bY-24,bY-1,'#3366cc')+line2(bX2,bY-27,bX2,bY-1,'#3366cc',2)+arrowHead(bX2,bY-1,'#3366cc')+lbl(bX2+6,bY-24,'w',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+14,bX2,'l'));
+    case 'st2': return mksvg(220,90,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+mid+','+(bY-28)+' '+bX2+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.5)+arrowVert(bX1+22,bY-6,bY-1,'#3366cc')+arrowVert(bX1+55,bY-16,bY-1,'#3366cc')+line2(mid,bY-27,mid,bY-1,'#3366cc',2)+arrowHead(mid,bY-1,'#3366cc')+arrowVert(bX2-55,bY-16,bY-1,'#3366cc')+arrowVert(bX2-22,bY-6,bY-1,'#3366cc')+lbl(mid,bY-32,'w',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9));
+    case 'f1': return mksvg(220,90,D+fix1+fix2+B+arrowVert(mid,20,bY-2,'#3366cc')+lbl(mid,16,'P',10,'#3366cc')+dim(bX1,bY+14,bX2,'l'));
+    case 'f2': return mksvg(220,90,D+fix1+fix2+B+arrowVert(bX1+65,20,bY-2,'#3366cc')+lbl(bX1+65,16,'P',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX1+65,bY+22,'C',9)+lbl(bX2,bY+22,'B',9)+dim(bX1,bY+16,bX1+65,'a','#3366cc'));
+    case 'fw': return mksvg(220,90,D+fix1+fix2+B+svgDistLoad(bX1,bX2,bY)+lbl(mid,bY-18,'w',9,'#3366cc'));
+    case 'fw_part': return mksvg(220,90,D+fix1+fix2+B+svgDistLoad(bX1+40,bX2-40,bY)+lbl(mid,bY-16,'w',9,'#3366cc')+dim(bX1,bY+16,bX1+40,'a')+dim(bX2-40,bY+16,bX2,'a'));
+    case 'fw_tri': return mksvg(220,90,D+fix1+fix2+B+poly(''+bX1+','+bY+' '+bX2+','+bY+' '+bX2+','+(bY-28),'rgba(51,102,204,0.12)','#3366cc',1.5)+arrowVert(bX1+40,bY-7,bY-1,'#3366cc')+arrowVert(bX1+80,bY-14,bY-1,'#3366cc')+arrowVert(bX1+130,bY-22,bY-1,'#3366cc')+line2(bX2,bY-27,bX2,bY-1,'#3366cc',2)+arrowHead(bX2,bY-1,'#3366cc')+lbl(bX2+6,bY-24,'w',10,'#3366cc'));
+    case 'fw_tri2': return mksvg(220,90,D+fix1+fix2+B+poly(''+bX1+','+bY+' '+mid+','+(bY-28)+' '+bX2+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.5)+arrowVert(bX1+30,bY-8,bY-1,'#3366cc')+line2(mid,bY-27,mid,bY-1,'#3366cc',2)+arrowHead(mid,bY-1,'#3366cc')+arrowVert(bX2-30,bY-8,bY-1,'#3366cc')+lbl(mid,bY-32,'w',10,'#3366cc'));
+    case 'cnt': return mksvg(220,90,D+pin1+svgPinSupport(mid,bY)+rol2+B+svgDistLoad(bX1,bX2,bY)+lbl(bX1,bY+22,'A',9)+lbl(mid,bY+22,'B',9)+lbl(bX2,bY+22,'C',9));
+    case 's_trap': return mksvg(220,90,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+44)+','+(bY-22)+' '+(bX2-44)+','+(bY-22)+' '+bX2+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.5)+svgDistLoad(bX1+44,bX2-44,bY)+lbl(mid,bY-26,'w',10,'#3366cc'));
+    case 's_4peak': return mksvg(220,90,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+45)+','+(bY-24)+' '+(bX1+90)+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2)+poly(''+(bX1+90)+','+bY+' '+mid+','+(bY-24)+' '+(bX2-45)+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2)+poly(''+(bX2-45)+','+bY+' '+bX2+','+(bY-24)+' '+(bX2+45)+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2));
+    case 's_6peak': return mksvg(220,90,D+pin1+rol2+B+poly(''+bX1+','+bY+' '+(bX1+30)+','+(bY-22)+' '+(bX1+60)+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2)+poly(''+(bX1+60)+','+bY+' '+(bX1+90)+','+(bY-22)+' '+(bX1+120)+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2)+poly(''+(bX1+120)+','+bY+' '+(bX1+150)+','+(bY-22)+' '+bX2+','+bY,'rgba(51,102,204,0.12)','#3366cc',1.2));
+    case 's_mom': return mksvg(220,90,D+pin1+rol2+B+pathM('M'+(bX1+70)+','+(bY-18)+' A16,16 0 1,1 '+(bX1+70)+','+(bY-2))+lbl(bX1+70,bY-24,'M',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9));
+    case 's_mom_end': return mksvg(220,90,D+pin1+rol2+B+pathM('M'+bX1+','+(bY-22)+' A16,16 0 1,1 '+(bX1+16)+','+(bY-6))+lbl(bX1-4,bY-28,'M',10,'#3366cc')+lbl(bX1,bY+22,'A',9)+lbl(bX2,bY+22,'B',9));
+    default: return '';
+  }
+}
+const FORMULA_DB = [
+
+  /* ════════════════════════════════════════════
+     単純支持梁
+  ════════════════════════════════════════════ */
+  {cat:'単純支持梁', sub:'集中荷重', name:'中央集中荷重', diagId:'s1',
+   desc:'スパン中央に集中荷重P',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = P/2',vars:[],calc:v=>({val:v.P/2,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = Pl/4',vars:[],calc:v=>({val:v.P*v.l/4,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = Pl³/(48EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.P*1e3*lm**3)/(48*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'集中荷重', name:'任意点集中荷重', diagId:'s2',
+   desc:'A端からa、B端からbの位置にP（a+b=l、a>bのとき最大たわみx=√((l²-b²)/3)）',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'a',l:'A端〜荷重点',u:'m'},{s:'b',l:'B端〜荷重点',u:'m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = Pb/l',vars:[],calc:v=>({val:v.P*v.b/v.l,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = Pa/l',vars:[],calc:v=>({val:v.P*v.a/v.l,unit:'kN'})},
+     {n:'MC（荷重点M）',formula:'MC = Pab/l',vars:[],calc:v=>({val:v.P*v.a*v.b/v.l,unit:'kN·m'})},
+     {n:'δmax（最大たわみ、a>b）',formula:'δ = Pb(l²-b²)^(3/2)/(9√3·EI·l)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,bm=v.b*1e3,Im=v.I*1e4;
+        return{val:(v.P*1e3*bm*Math.pow(lm**2-bm**2,1.5))/(9*Math.sqrt(3)*v.E*1e3*Im*lm),unit:'mm'};}},
+     {n:'δC（荷重点たわみ）',formula:'δ_C = Pa²b²/(3EIl)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,am=v.a*1e3,bm=v.b*1e3,Im=v.I*1e4;
+        return{val:(v.P*1e3*am**2*bm**2)/(3*v.E*1e3*Im*lm),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'集中荷重', name:'3等分点2集中荷重', diagId:'s3',
+   desc:'l/3・2l/3の2点に集中荷重P',
+   commonVars:[{s:'P',l:'集中荷重（各点）',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = P',vars:[],calc:v=>({val:v.P,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = Pl/3',vars:[],calc:v=>({val:v.P*v.l/3,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 23Pl³/(648EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(23*v.P*1e3*lm**3)/(648*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'集中荷重', name:'4等分点3集中荷重', diagId:'s4',
+   desc:'l/4・l/2・3l/4の3点に集中荷重P',
+   commonVars:[{s:'P',l:'集中荷重（各点）',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = 3P/2',vars:[],calc:v=>({val:3*v.P/2,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = Pl/2',vars:[],calc:v=>({val:v.P*v.l/2,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 19Pl³/(384EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(19*v.P*1e3*lm**3)/(384*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'等分布荷重', name:'全スパン等分布荷重', diagId:'sw',
+   desc:'全長に等分布荷重w',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/2',vars:[],calc:v=>({val:v.w*v.l/2,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = wl²/8',vars:[],calc:v=>({val:v.w*v.l**2/8,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 5wl⁴/(384EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(5*wn*lm**4)/(384*v.E*1e3*Im),unit:'mm'};}},
+     {n:'L/300（許容たわみ参考）',formula:'δ_allow = l×1000/300',vars:[],calc:v=>({val:v.l*1000/300,unit:'mm'})},
+   ]},
+
+  {cat:'単純支持梁', sub:'等分布荷重', name:'部分等分布荷重（中央部）', diagId:'sw_part',
+   desc:'両端からaずつ無荷重、中央部(l-2a)に等分布荷重w',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'},{s:'a',l:'端部無荷重長さ',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = w(l-2a)/2',vars:[],calc:v=>({val:v.w*(v.l-2*v.a)/2,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = w(3l²-4a²)/8',vars:[],calc:v=>({val:v.w*(3*v.l**2-4*v.a**2)/8,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = w(5l²-4a²)²/(1920EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,am=v.a*1e3,Im=v.I*1e4,wn=v.w;
+        return{val:(wn*(5*lm**2-4*am**2)**2)/(1920*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'等分布荷重', name:'三角形分布荷重（端部最大）', diagId:'st1',
+   desc:'A端=0、B端=wの三角形分布荷重',
+   commonVars:[{s:'w',l:'最大分布荷重(B端)',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = wl/6',vars:[],calc:v=>({val:v.w*v.l/6,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = wl/3',vars:[],calc:v=>({val:v.w*v.l/3,unit:'kN'})},
+     {n:'Mmax（最大M）',formula:'Mmax = wl²/(9√3)  ≈ 0.0642wl²  (x=0.577l)',
+      vars:[],calc:v=>({val:v.w*v.l**2/(9*Math.sqrt(3)),unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 0.00652·wl⁴/EI  (x=0.519l)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:0.00652*wn*lm**4/(v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'単純支持梁', sub:'等分布荷重', name:'二等辺三角形分布荷重（中央最大）', diagId:'st2',
+   desc:'A・B端=0、中央最大wの山形分布荷重',
+   commonVars:[{s:'w',l:'中央最大分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/4',vars:[],calc:v=>({val:v.w*v.l/4,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = wl²/12',vars:[],calc:v=>({val:v.w*v.l**2/12,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = wl⁴/(120EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(wn*lm**4)/(120*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  // 台形分布荷重（中央均等＋両端三角形）
+  {cat:'単純支持梁', sub:'等分布荷重', name:'台形分布荷重（中央均等・両端三角形）', diagId:'s_trap',
+   desc:'両端からaが三角形漸増、中央(l-2a)が均等w',
+   commonVars:[{s:'w',l:'均等部分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'},{s:'a',l:'三角形部長さ',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/2 - wa²/(2l)',
+      vars:[],calc:v=>({val:v.w*v.l/2-v.w*v.a**2/(2*v.l),unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = wl²/8 - wa²/8',
+      vars:[],calc:v=>({val:v.w*v.l**2/8-v.w*v.a**2/8,unit:'kN·m'})},
+   ]},
+
+  // 4山（l/4ピッチ）三角形分布荷重 — PDFの二等辺三角形4山
+  {cat:'単純支持梁', sub:'等分布荷重', name:'2山三角形分布荷重（l/2ピッチ）', diagId:'s_4peak',
+   desc:'l/2ピッチで2つの二等辺三角形が連続する分布荷重（最大値w）',
+   commonVars:[{s:'w',l:'最大分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/4',
+      vars:[],calc:v=>({val:v.w*v.l/4,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = wl²/16',
+      vars:[],calc:v=>({val:v.w*v.l**2/16,unit:'kN·m'})},
+     {n:'MD,E（l/4・3l/4点M）',formula:'MD = 5wl²/96',
+      vars:[],calc:v=>({val:5*v.w*v.l**2/96,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 7wl⁴/(1024EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(7*wn*lm**4)/(1024*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  // 6山（l/6ピッチ）三角形分布荷重 — PDFの二等辺三角形6山
+  {cat:'単純支持梁', sub:'等分布荷重', name:'3山三角形分布荷重（l/3ピッチ）', diagId:'s_6peak',
+   desc:'l/3ピッチで3つの二等辺三角形が連続する分布荷重（最大値w）',
+   commonVars:[{s:'w',l:'最大分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/4',
+      vars:[],calc:v=>({val:v.w*v.l/4,unit:'kN'})},
+     {n:'M₀（中央M）',formula:'M₀ = 7wl²/108',
+      vars:[],calc:v=>({val:7*v.w*v.l**2/108,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 259wl⁴/(38880EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(259*wn*lm**4)/(38880*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  // 中間集中モーメント（単純支持梁）
+  {cat:'単純支持梁', sub:'集中モーメント', name:'任意点集中モーメント', diagId:'s_mom',
+   desc:'A端からa、B端からbの位置にモーメントM（a>bのとき）',
+   commonVars:[{s:'M0',l:'集中モーメント',u:'kN·m'},{s:'a',l:'A端〜作用点',u:'m'},{s:'b',l:'B端〜作用点',u:'m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = -M₀/l',vars:[],calc:v=>({val:-v.M0/v.l,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = M₀/l',vars:[],calc:v=>({val:v.M0/v.l,unit:'kN'})},
+     {n:'MC（作用点左側M）',formula:'MC_left = M₀a/l',vars:[],calc:v=>({val:v.M0*v.a/v.l,unit:'kN·m'})},
+     {n:'δmax（最大たわみ、a>b）',formula:'δ = M₀(l²-b²)^(3/2)/(9√3·EI·l)  (a>bのとき)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,bm=v.b*1e3,Im=v.I*1e4;
+        return{val:(v.M0*1e6*Math.pow(lm**2-bm**2,1.5))/(9*Math.sqrt(3)*v.E*1e3*Im*lm),unit:'mm'};}},
+   ]},
+
+  // 端部集中モーメント（単純支持梁、A端）
+  {cat:'単純支持梁', sub:'集中モーメント', name:'A端集中モーメント', diagId:'s_mom_end',
+   desc:'A端にモーメントM₀が作用（単純支持）',
+   commonVars:[{s:'M0',l:'集中モーメント',u:'kN·m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = -M₀/l',vars:[],calc:v=>({val:-v.M0/v.l,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = M₀/l',vars:[],calc:v=>({val:v.M0/v.l,unit:'kN'})},
+     {n:'Mx（任意点M）',formula:'Mx = -M₀(1 - x/l)',vars:[{s:'x',l:'A端からの距離',u:'m'}],
+      calc:v=>({val:-v.M0*(1-v.x/v.l),unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = M₀l²/(9√3·EI)  (x=(1-1/√3)l)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.M0*1e6*lm**2)/(9*Math.sqrt(3)*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  /* ════════════════════════════════════════════
+     両端固定梁
+  ════════════════════════════════════════════ */
+  {cat:'両端固定梁', sub:'集中荷重', name:'中央集中荷重', diagId:'f1',
+   desc:'両端固定、スパン中央に集中荷重P',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = P/2',vars:[],calc:v=>({val:v.P/2,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -Pl/8',vars:[],calc:v=>({val:-v.P*v.l/8,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = Pl³/(192EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.P*1e3*lm**3)/(192*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'集中荷重', name:'任意点集中荷重', diagId:'f2',
+   desc:'A端からa、B端からbの位置にP',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'a',l:'A端〜荷重点',u:'m'},{s:'b',l:'B端〜荷重点',u:'m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = Pb²(3a+b)/l³',vars:[],calc:v=>({val:v.P*v.b**2*(3*v.a+v.b)/v.l**3,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = Pa²(a+3b)/l³',vars:[],calc:v=>({val:v.P*v.a**2*(v.a+3*v.b)/v.l**3,unit:'kN'})},
+     {n:'CA（A端固定M）',formula:'CA = -Pab²/l²',vars:[],calc:v=>({val:-v.P*v.a*v.b**2/v.l**2,unit:'kN·m'})},
+     {n:'CB（B端固定M）',formula:'CB = Pa²b/l²',vars:[],calc:v=>({val:v.P*v.a**2*v.b/v.l**2,unit:'kN·m'})},
+     {n:'δmax（a>bのとき、x=2al/(3a+b)）',formula:'δ = 2Pa³b²/(3EI(3a+b)²)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,am=v.a*1e3,bm=v.b*1e3,Im=v.I*1e4;
+        return{val:(2*v.P*1e3*am**3*bm**2)/(3*v.E*1e3*Im*(3*am+bm)**2),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'集中荷重', name:'3等分点2集中荷重', diagId:'f3',
+   desc:'l/3・2l/3の2点にP、両端固定',
+   commonVars:[{s:'P',l:'集中荷重（各点）',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = P',vars:[],calc:v=>({val:v.P,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -2Pl/9',vars:[],calc:v=>({val:-2*v.P*v.l/9,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 5Pl³/(648EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(5*v.P*1e3*lm**3)/(648*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'集中荷重', name:'4等分点3集中荷重', diagId:'f4',
+   desc:'l/4・l/2・3l/4の3点にP、両端固定',
+   commonVars:[{s:'P',l:'集中荷重（各点）',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = 3P/2',vars:[],calc:v=>({val:3*v.P/2,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -5Pl/16',vars:[],calc:v=>({val:-5*v.P*v.l/16,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = Pl³/(96EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.P*1e3*lm**3)/(96*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'等分布荷重', name:'全スパン等分布荷重', diagId:'fw',
+   desc:'両端固定、全長に等分布荷重w',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/2',vars:[],calc:v=>({val:v.w*v.l/2,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -wl²/12',vars:[],calc:v=>({val:-v.w*v.l**2/12,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = wl⁴/(384EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(wn*lm**4)/(384*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'等分布荷重', name:'部分等分布荷重（中央部）', diagId:'fw_part',
+   desc:'両端からaずつ無荷重、中央部(l-2a)に等分布荷重w、両端固定',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'},{s:'a',l:'端部無荷重長さ',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = w(l-2a)/2',vars:[],calc:v=>({val:v.w*(v.l-2*v.a)/2,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -w/12·(l²-2a²+4a³/l)',
+      vars:[],calc:v=>({val:-v.w/12*(v.l**2-2*v.a**2+4*v.a**3/v.l),unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = w(5l⁴-20l²a²+16a⁴)/(1920EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,am=v.a*1e3,Im=v.I*1e4,wn=v.w;
+        return{val:(wn*(5*lm**4-20*lm**2*am**2+16*am**4))/(1920*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'等分布荷重', name:'三角形分布荷重（端部最大）', diagId:'fw_tri',
+   desc:'A端=0、B端=w、両端固定',
+   commonVars:[{s:'w',l:'最大分布荷重(B端)',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA（反力）',formula:'RA = 3wl/20',vars:[],calc:v=>({val:3*v.w*v.l/20,unit:'kN'})},
+     {n:'RB（反力）',formula:'RB = 7wl/20',vars:[],calc:v=>({val:7*v.w*v.l/20,unit:'kN'})},
+     {n:'CA（A端固定M）',formula:'CA = -wl²/30',vars:[],calc:v=>({val:-v.w*v.l**2/30,unit:'kN·m'})},
+     {n:'CB（B端固定M）',formula:'CB = wl²/20',vars:[],calc:v=>({val:v.w*v.l**2/20,unit:'kN·m'})},
+     {n:'Mmax（最大M）',formula:'Mmax ≈ 0.0215wl²  (x=0.548l)',
+      vars:[],calc:v=>({val:0.0215*v.w*v.l**2,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 0.00131·wl⁴/EI  (x=0.525l)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:0.00131*wn*lm**4/(v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'両端固定梁', sub:'等分布荷重', name:'二等辺三角形分布荷重（中央最大）', diagId:'fw_tri2',
+   desc:'A・B端=0、中央最大w、両端固定',
+   commonVars:[{s:'w',l:'中央最大分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RA=RB（反力）',formula:'RA = RB = wl/4',vars:[],calc:v=>({val:v.w*v.l/4,unit:'kN'})},
+     {n:'CA=-CB（固定端M）',formula:'CA = -CB = -5wl²/96',vars:[],calc:v=>({val:-5*v.w*v.l**2/96,unit:'kN·m'})},
+     {n:'Mmax（径間最大M）',formula:'Mmax = wl²/32',vars:[],calc:v=>({val:v.w*v.l**2/32,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 7wl⁴/(3840EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(7*wn*lm**4)/(3840*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  /* ════════════════════════════════════════════
+     連続梁（2径間）
+  ════════════════════════════════════════════ */
+  {cat:'連続梁（2径間）', sub:'等スパン等分布荷重', name:'両径間全スパン等分布荷重', diagId:'cnt_w',
+   desc:'等スパンl、2径間連続梁、全スパン等分布w（x=3l/8で最大M）',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'各スパン',u:'m'}],
+   items:[
+     {n:'RA=RC（端部反力）',formula:'RA = RC = 3wl/8',vars:[],calc:v=>({val:3*v.w*v.l/8,unit:'kN'})},
+     {n:'RB（中間支点反力）',formula:'RB = 5wl/4',vars:[],calc:v=>({val:5*v.w*v.l/4,unit:'kN'})},
+     {n:'MB（中間支点M）',formula:'MB = -wl²/8',vars:[],calc:v=>({val:-v.w*v.l**2/8,unit:'kN·m'})},
+     {n:'M₀（径間最大M）',formula:'M₀ = 9wl²/128  (x=3l/8)',vars:[],calc:v=>({val:9*v.w*v.l**2/128,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = wl⁴/(185EI)  (x=0.422l)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(wn*lm**4)/(185*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'連続梁（2径間）', sub:'等スパン集中荷重', name:'両径間中央集中荷重', diagId:'cnt',
+   desc:'等スパンl、両径間中央にP（x=l/√5で最大たわみ）',
+   commonVars:[{s:'P',l:'集中荷重（各径間）',u:'kN'},{s:'l',l:'各スパン',u:'m'}],
+   items:[
+     {n:'RA=RC（端部反力）',formula:'RA = RC = 5P/16',vars:[],calc:v=>({val:5*v.P/16,unit:'kN'})},
+     {n:'RB（中間支点反力）',formula:'RB = 11P/8',vars:[],calc:v=>({val:11*v.P/8,unit:'kN'})},
+     {n:'MB（中間支点M）',formula:'MB = -3Pl/16',vars:[],calc:v=>({val:-3*v.P*v.l/16,unit:'kN·m'})},
+     {n:'MD=ME（径間M）',formula:'MD = ME = 5Pl/32',vars:[],calc:v=>({val:5*v.P*v.l/32,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = Pl³/(48√5·EI)  (x=l/√5)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.P*1e3*lm**3)/(48*Math.sqrt(5)*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'連続梁（2径間）', sub:'片側等分布荷重', name:'片側径間のみ等分布荷重', diagId:'cnt_half',
+   desc:'等スパンl、A-B径間のみ等分布wが作用',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'各スパン',u:'m'}],
+   items:[
+     {n:'RA（A端反力）',formula:'RA = 7wl/16',vars:[],calc:v=>({val:7*v.w*v.l/16,unit:'kN'})},
+     {n:'RC（C端反力）',formula:'RC = -wl/16',vars:[],calc:v=>({val:-v.w*v.l/16,unit:'kN'})},
+     {n:'RB（中間反力）',formula:'RB = 5wl/8',vars:[],calc:v=>({val:5*v.w*v.l/8,unit:'kN'})},
+     {n:'MB（中間支点M）',formula:'MB = -wl²/16',vars:[],calc:v=>({val:-v.w*v.l**2/16,unit:'kN·m'})},
+     {n:'M₀（径間最大M）',formula:'M₀ = 49wl²/512  (x=7l/16)',vars:[],calc:v=>({val:49*v.w*v.l**2/512,unit:'kN·m'})},
+     {n:'δmax（最大たわみ）',formula:'δ = 7wl⁴/(768EI)  (x=l/2)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(7*wn*lm**4)/(768*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  /* ════════════════════════════════════════════
+     片持ち梁
+  ════════════════════════════════════════════ */
+  {cat:'片持ち梁', sub:'集中荷重', name:'先端集中荷重', diagId:'c1',
+   desc:'固定端B、先端Aに集中荷重P',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = P',vars:[],calc:v=>({val:v.P,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = -Pl',vars:[],calc:v=>({val:-v.P*v.l,unit:'kN·m'})},
+     {n:'δmax（先端たわみ）',formula:'δ = Pl³/(3EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.P*1e3*lm**3)/(3*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'片持ち梁', sub:'集中荷重', name:'任意点集中荷重', diagId:'c2',
+   desc:'固定端Bからb、先端Aからaの位置にP（a+b=l）',
+   commonVars:[{s:'P',l:'集中荷重',u:'kN'},{s:'b',l:'荷重点〜固定端距離',u:'m'},{s:'l',l:'スパン全長',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = P',vars:[],calc:v=>({val:v.P,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = -Pb',vars:[],calc:v=>({val:-v.P*v.b,unit:'kN·m'})},
+     {n:'δA（先端たわみ）',formula:'δ_A = P(3bl²-b³)/(6EI) = Pb²(3l-b)/(6EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,bm=v.b*1e3,Im=v.I*1e4;
+        return{val:(v.P*1e3*bm**2*(3*lm-bm))/(6*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'片持ち梁', sub:'等分布荷重', name:'全スパン等分布荷重', diagId:'c3',
+   desc:'固定端B、全長に等分布荷重w',
+   commonVars:[{s:'w',l:'等分布荷重',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = wl',vars:[],calc:v=>({val:v.w*v.l,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = -wl²/2',vars:[],calc:v=>({val:-v.w*v.l**2/2,unit:'kN·m'})},
+     {n:'δmax（先端たわみ）',formula:'δ = wl⁴/(8EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(wn*lm**4)/(8*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'片持ち梁', sub:'等分布荷重', name:'三角形分布荷重（先端0・固定端最大）', diagId:'c_tri_fix',
+   desc:'先端A=0、固定端B=wの三角形分布荷重',
+   commonVars:[{s:'w',l:'最大分布荷重(固定端)',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = wl/2',vars:[],calc:v=>({val:v.w*v.l/2,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = -wl²/3',vars:[],calc:v=>({val:-v.w*v.l**2/3,unit:'kN·m'})},
+     {n:'δmax（先端たわみ）',formula:'δ = wl⁴/(30EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(wn*lm**4)/(30*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'片持ち梁', sub:'等分布荷重', name:'三角形分布荷重（先端最大・固定端0）', diagId:'c_tri_tip',
+   desc:'先端A=w、固定端B=0の三角形分布荷重',
+   commonVars:[{s:'w',l:'最大分布荷重(先端)',u:'kN/m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = wl/2',vars:[],calc:v=>({val:v.w*v.l/2,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = -wl²/6',vars:[],calc:v=>({val:-v.w*v.l**2/6,unit:'kN·m'})},
+     {n:'δmax（先端たわみ）',formula:'δ = 11wl⁴/(120EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4,wn=v.w;return{val:(11*wn*lm**4)/(120*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  {cat:'片持ち梁', sub:'集中モーメント', name:'先端集中モーメント', diagId:'c1',
+   desc:'固定端B、先端Aに集中モーメントM（時計回り正）',
+   commonVars:[{s:'M0',l:'集中モーメント',u:'kN·m'},{s:'l',l:'スパン',u:'m'}],
+   items:[
+     {n:'RB（反力）',formula:'RB = 0',vars:[],calc:v=>({val:0,unit:'kN'})},
+     {n:'MB（固定端M）',formula:'MB = M₀',vars:[],calc:v=>({val:v.M0,unit:'kN·m'})},
+     {n:'δmax（先端たわみ）',formula:'δ = M₀l²/(2EI)',
+      vars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'}],
+      calc:v=>{const lm=v.l*1e3,Im=v.I*1e4;return{val:(v.M0*1e6*lm**2)/(2*v.E*1e3*Im),unit:'mm'};}},
+   ]},
+
+  /* ════════════════════════════════════════════
+     断面計算
+  ════════════════════════════════════════════ */
+  {cat:'断面計算', sub:'断面定数', name:'矩形断面 Z・I', diagId:'',
+   desc:'幅b×高さhの矩形断面',
+   commonVars:[{s:'b',l:'断面幅',u:'mm'},{s:'h',l:'断面高さ',u:'mm'}],
+   items:[
+     {n:'Z（断面係数）',formula:'Z = bh²/6',vars:[],calc:v=>({val:v.b*v.h**2/6/1000,unit:'×10³mm³'})},
+     {n:'I（断面二次モーメント）',formula:'I = bh³/12',vars:[],calc:v=>({val:v.b*v.h**3/12/10000,unit:'×10⁴mm⁴'})},
+   ]},
+  {cat:'断面計算', sub:'応力度', name:'曲げ応力度チェック', diagId:'',
+   desc:'曲げ応力度と許容値の照査',
+   commonVars:[{s:'M',l:'曲げM',u:'kN·m'},{s:'Z',l:'断面係数',u:'×10³mm³'},{s:'fb',l:'許容応力度',u:'N/mm²'}],
+   items:[
+     {n:'σ（曲げ応力度）＆判定',formula:'σ = M×10⁶/(Z×10³)',
+      vars:[],calc:v=>{const sg=(v.M*1e6)/(v.Z*1e3);return{val:sg,unit:'N/mm²',note:sg<=v.fb?'OK ✓（σ≤fb）':'NG ✗（σ>fb）'};}},
+   ]},
+  {cat:'断面計算', sub:'応力度', name:'軸応力度', diagId:'',
+   desc:'軸力Nによる圧縮・引張応力度',
+   commonVars:[{s:'N',l:'軸力',u:'kN'},{s:'A',l:'断面積',u:'mm²'}],
+   items:[
+     {n:'σ（軸応力度）',formula:'σ = N×1000/A',vars:[],calc:v=>({val:v.N*1000/v.A,unit:'N/mm²'})},
+   ]},
+
+  /* ════════════════════════════════════════════
+     柱・座屈
+  ════════════════════════════════════════════ */
+  {cat:'柱・座屈', sub:'弾性座屈', name:'オイラー座屈荷重', diagId:'',
+   desc:'両端ピン支持柱の弾性座屈荷重',
+   commonVars:[{s:'E',l:'弾性係数',u:'kN/mm²'},{s:'I',l:'断面2次M',u:'×10⁴mm⁴'},{s:'lk',l:'座屈長さ',u:'m'}],
+   items:[
+     {n:'Pcr（座屈荷重）',formula:'Pcr = π²EI/lk²',
+      vars:[],calc:v=>{const Im=v.I*1e4,lN=v.lk*1e3;return{val:Math.PI**2*v.E*1e3*Im/(lN**2)/1e3,unit:'kN'};}},
+   ]},
+
+  /* ════════════════════════════════════════════
+     地震・風荷重
+  ════════════════════════════════════════════ */
+  {cat:'地震・風荷重', sub:'地震力', name:'地震層せん断力', diagId:'',
+   desc:'層せん断力係数×当該階以上重量',
+   commonVars:[{s:'Ci',l:'層せん断係数',u:'—'},{s:'Wi',l:'当該階以上重量',u:'kN'}],
+   items:[
+     {n:'Qi（地震層せん断力）',formula:'Qi = Ci × Wi',vars:[],calc:v=>({val:v.Ci*v.Wi,unit:'kN'})},
+   ]},
+  {cat:'地震・風荷重', sub:'風圧力', name:'風圧力', diagId:'',
+   desc:'速度圧×風力係数×受圧面積',
+   commonVars:[{s:'q',l:'速度圧',u:'N/m²'},{s:'Cf',l:'風力係数',u:'—'},{s:'A',l:'受圧面積',u:'m²'}],
+   items:[
+     {n:'W（風圧力）',formula:'W = q×Cf×A/1000',vars:[],calc:v=>({val:v.q*v.Cf*v.A/1000,unit:'kN'})},
+   ]},
+];
+
+/* ============================================================
+   モーダル制御
+   ============================================================ */
+let modalStep=1; // 1=公式リスト, 2=計算項目リスト
+let selectedFmlIdx=null;
+
+function openModal(){
+  modalStep=1; selectedFmlIdx=null;
+  document.getElementById('modal-back').style.display='none';
+  document.getElementById('modal-title').textContent='📐 梁の公式集';
+  buildStep1();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function modalBack(){
+  if(modalStep===2){modalStep=1;selectedFmlIdx=null;document.getElementById('modal-back').style.display='none';document.getElementById('modal-title').textContent='📐 梁の公式集';buildStep1();}
+}
+
+/* 公式モーダル：公式リスト（ステップ1のみ） */
+function buildStep1(){
+  const body=document.getElementById('modal-body');
+  const cats={};
+  FORMULA_DB.forEach((f,i)=>{
+    if(!cats[f.cat])cats[f.cat]={};
+    if(!cats[f.cat][f.sub])cats[f.cat][f.sub]=[];
+    cats[f.cat][f.sub].push({...f,idx:i});
+  });
+  let html='';
+  for(const cat in cats){
+    html+='<div class="fcat-header">'+(cat)+'</div>';
+    for(const sub in cats[cat]){
+      html+='<div class="fsubcat-header">▸ '+(sub)+'</div>';
+      cats[cat][sub].forEach(f=>{
+        const svg=f.diagId?'<div class="fml-item-svg">'+(diagSmall(f.diagId))+'</div>':'';
+        html+='<div class="fml-item" onclick="selectFormula('+(f.idx)+')">'+(svg)+'<div class="fml-item-info"><div class="fml-item-name">'+(f.name)+'</div><div class="fml-item-desc">'+(f.desc)+'</div></div></div>';
+      });
+    }
+  }
+  body.innerHTML=html;
+}
+
+/* 公式を選択 → モーダルを閉じて計算項目ボタンをメニューバーに表示 */
+function selectFormula(idx){
+  closeModal();
+  const f=FORMULA_DB[idx];
+  curFmlBase=f; // 選択中の公式ベース
+  curFml=null;  // 計算項目は未選択
+  varVals={};activeVar=null;varTokens=[];varCursor=0;
+  tokens=[];cursor=0;lastResult=null;
+  // 計算項目ボタンを表示
+  renderCalcItemChips(f);
+  // FORMULA欄に公式名と図を表示（項目未選択状態）
+  document.getElementById('fsf').innerHTML='<span style="color:#2a5a8a;font-style:italic">'+(escHtml(f.name))+' — 上の項目を選択</span>';
+  document.getElementById('fsdesc').textContent=f.desc;
+  document.getElementById('fscreen-diag').innerHTML=f.diagId?diagSmall(f.diagId):'';
+  document.getElementById('vp').classList.remove('on');
+  document.getElementById('lcd-expr').innerHTML='<span class="cursor"></span>';
+  document.getElementById('lcd-result').textContent='';
+}
+
+/* 計算項目チップを描画 */
+function renderCalcItemChips(f){
+  const bar=document.getElementById('calc-items-bar');
+  if(!f){bar.innerHTML='';return;}
+  // ラベルを短縮（括弧内を取り出す or 記号を使う）
+  bar.innerHTML=f.items.map((item,j)=>{
+    // 短いラベルを生成: 公式の左辺（=より前）を使う
+    const shortLabel=item.formula.split('=')[0].trim();
+    return '<button class="calc-item-chip" onclick="selectCalcItem('+(FORMULA_DB.indexOf(f))+','+(j)+')" title="'+(escHtml(item.n))+'">'+(escHtml(shortLabel))+'</button>';
+  }).join('');
+}
+
+function showStep2(idx){ selectFormula(idx); }
+
+function selectCalcItem(fIdx,iIdx){
+  const f=FORMULA_DB[fIdx];
+  const item=f.items[iIdx];
+  const allVars=[...f.commonVars,...item.vars];
+  curFml={
+    name: f.name,
+    itemName: item.n,
+    formula: item.formula,
+    desc: f.desc,
+    diagId: f.diagId,
+    vars: allVars,
+    fIdx: fIdx,
+    iIdx: iIdx,
+    calc: (v)=>{
+      const res=item.calc(v);
+      return [{n:item.n, v:res.val, u:res.unit, note:res.note||'', formula:item.formula}];
+    }
+  };
+  // 既存の変数値を保持しつつ新しい変数を追加
+  const prevVals={...varVals};
+  varVals={};
+  allVars.forEach(v=>varVals[v.s]=prevVals[v.s]||'');
+  activeVar=allVars.find(v=>!varVals[v.s])?.s || allVars[0].s;
+  varTokens=[varVals[activeVar]||''];
+  varCursor=varTokens[0].length;
+  if(!varTokens[0])varTokens=[];
+  tokens=[];cursor=0;lastResult=null;
+  // アクティブチップを更新
+  document.querySelectorAll('.calc-item-chip').forEach((btn,i)=>{
+    btn.classList.toggle('active', i===iIdx);
+  });
+  rFscreen();rVpanel();
+  document.getElementById('lcd-expr').innerHTML='<span class="cursor"></span>';
+  document.getElementById('lcd-result').textContent='';
+}
+
+/* ============================================================
+   公式表示・変数パネル
+   ============================================================ */
+function rFscreen(){
+  const el=document.getElementById('fsf');
+  const diagEl=document.getElementById('fscreen-diag');
+  if(!curFml){
+    el.innerHTML='<span style="color:#3a7a3a;font-style:italic">— 「公式」から公式と計算項目を選択 —</span>';
+    document.getElementById('fsdesc').textContent='';
+    diagEl.innerHTML='';
+    return;
+  }
+  let h=escHtml(curFml.formula);
+  if(curFml.vars){
+    curFml.vars.forEach(v=>{
+      const val=varVals[v.s];
+      const cls=val?'vsym filled':'vsym';
+      const show=escHtml(val||v.s);
+      h=h.replace(new RegExp('\\b'+v.s+'\\b','g'),'<span class="'+(cls)+'">'+(show)+'</span>');
+    });
+  }
+  el.innerHTML=h;
+  document.getElementById('fsdesc').textContent=curFml.name+(curFml.itemName?' — '+curFml.itemName:'')+' | '+curFml.desc;
+  // 図を表示
+  diagEl.innerHTML=curFml.diagId?diagSmall(curFml.diagId):'';
+}
+function rVpanel(){
+  const vp=document.getElementById('vp');
+  if(!curFml||!curFml.vars||!curFml.vars.length){vp.classList.remove('on');return;}
+  vp.classList.add('on');
+  document.getElementById('vslots').innerHTML=curFml.vars.map(v=>{
+    const val=varVals[v.s],isA=activeVar===v.s,isDone=!!val;
+    let cls='vs';if(isA)cls+=' act';else if(isDone)cls+=' done';
+    return'<div class="'+(cls)+'" onclick="setAV(\''+v.s+'\')"><div class="vssym">'+(v.s)+'</div><div class="vsval">'+(val||'')+'</div><div class="vsunit">'+(v.u)+'</div></div>';
+  }).join('');
+}
+
+/* ============================================================
+   状態・電卓変数
+   ============================================================ */
+let tokens=[], cursor=0, lastResult=null, ans=0, mem=0;
+let isShift=false;
+let curFml=null, curFmlBase=null, varVals={}, activeVar=null;
+let varTokens=[], varCursor=0;
+let calcHistory=[];
+
+/* ============================================================
+   変数入力
+   ============================================================ */
+function varInsert(str){varTokens.splice(varCursor,0,str);varCursor++;syncVarBuf();}
+function varInsertFn(open,close){varTokens.splice(varCursor,0,open,close);varCursor++;syncVarBuf();}
+function syncVarBuf(){varVals[activeVar]=varTokens.join('');renderVarLcd();}
+function setAV(s){activeVar=s;const ex=varVals[s]||'';varTokens=ex?[ex]:[];varCursor=varTokens.length;renderVarLcd();}
+
+/* ============================================================
+   履歴
+   ============================================================ */
+function addHistory(expr,result,label,calcExpr,calcExprRaw){calcHistory.unshift({expr,result,label,calcExpr:calcExpr||'',calcExprRaw:calcExprRaw||''});if(calcHistory.length>50)calcHistory.pop();saveHistory();renderHistory();}
+function saveHistory(){try{localStorage.setItem('calc_history',JSON.stringify(calcHistory));}catch(e){}}
+function loadHistory(){try{const s=localStorage.getItem('calc_history');if(s)calcHistory=JSON.parse(s);}catch(e){}}
+function clearHistory(){calcHistory=[];saveHistory();renderHistory();}
+function renderHistory(){
+  const panel=document.getElementById('hist-panel'),bar=document.getElementById('hist-bar');
+  if(!calcHistory.length){panel.classList.remove('has-items');bar.style.display='none';return;}
+  bar.style.display='flex';panel.classList.add('has-items');
+  panel.innerHTML=calcHistory.map(function(h,i){
+    return '<div class="hist-item" onclick="showHistMenu(event,'+i+')">'
+      +'<div class="hist-expr">'+(escHtml(h.label||h.expr))+'</div>'
+      +(h.calcExpr?'<div class="hist-calc">'+(escHtml(h.calcExpr))+'</div>':'')
+      +'<div class="hist-res">'+(escHtml(String(h.result)))+'</div>'
+      +'</div>';
+  }).join('');
+}
+function showHistMenu(e,i){
+  e.stopPropagation();
+  // 既存メニューを削除
+  var old=document.getElementById('hist-menu');
+  if(old){old.remove();}
+  var h=calcHistory[i];
+  var menu=document.createElement('div');
+  menu.id='hist-menu';
+  menu.className='hist-menu';
+  var items=[
+    {label:'LCDに表示', fn:function(){recallHistory(i);menu.remove();}},
+    {label:'計算値をコピー', fn:function(){copyText(String(h.result));menu.remove();}},
+    {label:'計算式をコピー', fn:function(){copyText(h.calcExprRaw||h.calcExpr||h.expr);menu.remove();}},
+    {label:'キャンセル', fn:function(){menu.remove();}}
+  ];
+  items.forEach(function(item){
+    var btn=document.createElement('button');
+    btn.className='hist-menu-btn';
+    btn.textContent=item.label;
+    btn.onclick=item.fn;
+    menu.appendChild(btn);
+  });
+  // 位置をタップ位置に合わせる
+  var rect=e.currentTarget.getBoundingClientRect();
+  menu.style.top=(rect.bottom+window.scrollY)+'px';
+  menu.style.left=(rect.left+window.scrollX)+'px';
+  document.body.appendChild(menu);
+  // 外側タップで閉じる
+  setTimeout(function(){document.addEventListener('click',function h2(){menu.remove();document.removeEventListener('click',h2);});},50);
+}
+function copyText(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).catch(function(){});
+  }else{
+    var ta=document.createElement('textarea');
+    ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+  }
+}
+function kPaste(){
+  if(navigator.clipboard&&navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(txt){
+      if(!txt)return;
+      var clean=txt.trim();
+      // 1文字ずつトークンに分割して挿入（DELで1文字ずつ消せる）
+      var chars=clean.split('');
+      if(activeVar!==null&&curFml){
+        chars.forEach(function(c){varTokens.splice(varCursor,0,c);varCursor++;});
+        syncVarBuf();
+      }else{
+        if(lastResult!==null){lastResult=null;}
+        chars.forEach(function(c){tokens.splice(cursor,0,c);cursor++;});
+        renderLcd();
+      }
+    }).catch(function(){
+      alert('クリップボードへのアクセスが許可されていません。');
+    });
+  }else{
+    alert('このブラウザではクリップボードの読み取りに対応していません。');
+  }
+}
+function recallHistory(i){
+  var h=calcHistory[i];
+  if(h.calcExpr){
+    document.getElementById('lcd-expr').innerHTML=escHtml(h.calcExpr)+'<span class="cursor"></span>';
+    document.getElementById('lcd-result').textContent=String(h.result);
+    lastResult=typeof h.result==='number'?h.result:null;
+    ans=typeof lastResult==='number'?lastResult:ans;
+  }else{
+    tokens=[h.expr];cursor=tokens.length;
+    lastResult=typeof h.result==='number'?h.result:null;
+    ans=typeof lastResult==='number'?lastResult:ans;
+    renderLcd();
+  }
+}
+
+/* ============================================================
+   トークン操作
+   ============================================================ */
+function insert(str){
+  // 計算後でもlastResultをクリアせずカーソル位置に挿入
+  if(lastResult!==null){lastResult=null;}
+  tokens.splice(cursor,0,str);cursor++;renderLcd();
+}
+function insertFn(open,close){
+  if(activeVar!==null&&curFml){varInsertFn(open,close);return;}
+  if(lastResult!==null){lastResult=null;}
+  tokens.splice(cursor,0,open,close);cursor++;renderLcd();
+}
+function insertToken(ch){
+  if(fracMode){
+    // 分数モード中: ÷ で分子→分母に移行、それ以外は現在の欄に挿入
+    if(ch==='÷'||ch==='/'){fracInDenom=true;fracCursor=fracDenom.length;renderFracLcd();}
+    else{fracInsert(ch);}
+    return;
+  }
+  if(activeVar!==null&&curFml){varInsert(ch);return;}insert(ch);
+}
+function insertPow2(){if(activeVar!==null&&curFml){varInsert('^2');return;}if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'^2');cursor++;renderLcd();}
+function insertPowN(){if(activeVar!==null&&curFml){varInsert('^');return;}if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'^');cursor++;renderLcd();}
+function insertPowNeg1(){if(activeVar!==null&&curFml){varInsert('^(-1)');return;}if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'^(-1)');cursor++;renderLcd();}
+function insertExp(){if(activeVar!==null&&curFml){varInsert('×10^');return;}if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'×10^');cursor++;renderLcd();}
+function insertAns(){if(activeVar!==null&&curFml){varInsert('Ans');return;}insert('Ans');}
+
+/* ============================================================
+   数字・小数点
+   ============================================================ */
+function kN(n){
+  if(fracMode){fracInsert(n);return;}
+  if(activeVar!==null&&curFml){varInsert(n);}else{insert(n);}
+}
+function kDot(){
+  if(fracMode){fracInsert('.');return;}
+  if(activeVar!==null&&curFml){varInsert('.');}else{insert('.');}
+}
+/* ============================================================
+   DEL / AC / 符号反転
+   ============================================================ */
+function kBS(){
+  if(fracMode){fracBS();return;}
+  if(activeVar!==null&&curFml){if(varCursor>0){varTokens.splice(varCursor-1,1);varCursor--;}syncVarBuf();return;}
+  if(lastResult!==null){lastResult=null;renderLcd();return;}
+  if(cursor>0){tokens.splice(cursor-1,1);cursor--;renderLcd();}
+}
+function kAC(){tokens=[];cursor=0;lastResult=null;if(curFml){curFml.vars.forEach(v=>varVals[v.s]='');activeVar=curFml.vars[0].s;varTokens=[];varCursor=0;}rFscreen();rVpanel();renderLcd();}
+function kClearFormula(){
+  curFml=null;curFmlBase=null;varVals={};activeVar=null;varTokens=[];varCursor=0;
+  tokens=[];cursor=0;lastResult=null;
+  renderCalcItemChips(null);
+  rFscreen();rVpanel();renderLcd();
+}
+function kNeg(){
+  if(activeVar!==null&&curFml){varInsert('(-1)×');return;}
+  if(lastResult!==null){lastResult=-lastResult;renderLcd();return;}
+  insert('(-1)×');
+}
+
+/* ============================================================
+   SHIFT 機能
+   ============================================================ */
+function kShiftable(normal, shifted){
+  var fn = isShift ? shifted : normal;
+  if(isShift){isShift=false;document.getElementById('btn-shift').style.background='';document.getElementById('flag-shift').classList.remove('on');}
+  switch(fn){
+    case 'sqrt':  insertFn('√(', ')'); break;
+    case 'cbrt':  insertFn('√(', '^(1/3))'); break; // ³√x = x^(1/3)
+    case 'sq':    insertPow2(); break;
+    case 'inv':   insertPowNeg1(); break;
+    case 'pow':   insertPowN(); break;
+    case 'xrt':   // x乗根: ^(1/ の形で挿入
+      if(activeVar!==null&&curFml){varInsert('^(1/');}
+      else{if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'^(1/');cursor++;renderLcd();}
+      break;
+    case 'log':   insertFn('log(', ')'); break;
+    case 'pow10': // 10^x
+      if(activeVar!==null&&curFml){varInsert('10^(');}
+      else{if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'10^(');cursor++;renderLcd();}
+      break;
+    case 'ln':    insertFn('ln(', ')'); break;
+    case 'powe':  // e^x
+      if(activeVar!==null&&curFml){varInsert('e^(');}
+      else{if(lastResult!==null){lastResult=null;}tokens.splice(cursor,0,'e^(');cursor++;renderLcd();}
+      break;
+    case 'pi':    insertToken('π'); break;
+    case 'euler': insertToken('2.718281828'); break;
+    case 'abs':   insertFn('abs(', ')'); break;
+    case 'sin':   insertFn('sin(', ')'); break;
+    case 'asin':  insertFn('asin(', ')'); break;
+    case 'cos':   insertFn('cos(', ')'); break;
+    case 'acos':  insertFn('acos(', ')'); break;
+    case 'tan':   insertFn('tan(', ')'); break;
+    case 'atan':  insertFn('atan(', ')'); break;
+  }
+}
+
+/* ============================================================
+   分数入力
+   ============================================================ */
+var fracMode = false;   // 分数入力中フラグ
+var fracNumer = [];     // 分子トークン
+var fracDenom = [];     // 分母トークン
+var fracCursor = 0;     // 分母内カーソル
+var fracInDenom = false; // 分母入力中
+
+function kFrac(){
+  if(activeVar!==null&&curFml){
+    // 変数入力中は ()/() 形式で挿入
+    varInsert('(');varInsert(')');varInsert('/');varInsert('(');varInsert(')');
+    return;
+  }
+  // 分数モード開始: 現在のトークンを分子として保持
+  fracMode=true;
+  fracInDenom=false;
+  fracNumer=[];
+  fracDenom=[];
+  fracCursor=0;
+  renderFracLcd();
+}
+
+function renderFracLcd(){
+  var numStr=fracNumer.join('');
+  var denStr=fracDenom.join('');
+  var numHtml='<span class="frac-num">'+escHtml(numStr||' ')+'</span>';
+  var denHtml='<span class="frac-den">';
+  if(fracInDenom){
+    var before=fracDenom.slice(0,fracCursor).join('');
+    var after=fracDenom.slice(fracCursor).join('');
+    denHtml+=escHtml(before)+'<span class="frac-cursor"></span>'+escHtml(after);
+  }else{
+    // 分子入力中：分子にカーソル
+    numHtml='<span class="frac-num">'+escHtml(numStr)+'<span class="frac-cursor"></span></span>';
+    denHtml+=escHtml(denStr||' ');
+  }
+  denHtml+='</span>';
+  document.getElementById('lcd-expr').innerHTML='<span class="frac-wrap">'+numHtml+denHtml+'</span>';
+  document.getElementById('lcd-result').textContent='';
+}
+
+function fracInsert(ch){
+  if(!fracInDenom){
+    fracNumer.push(ch);
+  }else{
+    fracDenom.splice(fracCursor,0,ch);fracCursor++;
+  }
+  renderFracLcd();
+}
+
+function fracBS(){
+  if(!fracInDenom){
+    if(fracNumer.length>0)fracNumer.pop();
+  }else{
+    if(fracCursor>0){fracDenom.splice(fracCursor-1,1);fracCursor--;}
+  }
+  renderFracLcd();
+}
+
+function fracCommit(){
+  // 分数を (分子)/(分母) としてメイントークンに挿入
+  fracMode=false;
+  var expr='('+fracNumer.join('')+')'+'/'+'('+fracDenom.join('')+')';
+  if(lastResult!==null){lastResult=null;}
+  expr.split('').forEach(function(c){tokens.splice(cursor,0,c);cursor++;});
+  renderLcd();
+}
+function kSto(){mem=lastResult!==null?lastResult:parseFloat(tokens.join(''))||0;document.getElementById('flag-m').classList.add('on');}
+function kMplus(){mem+=(lastResult!==null?lastResult:parseFloat(tokens.join(''))||0);document.getElementById('flag-m').classList.add('on');}
+function kEng(){if(lastResult===null||typeof lastResult!=='number')return;const e=Math.floor(Math.log10(Math.abs(lastResult)));const eng=e-((e%3+3)%3);tokens=[parseFloat((lastResult/Math.pow(10,eng)).toFixed(6))+'×10^'+eng];cursor=tokens.length;lastResult=null;renderLcd();}
+function kSD(){renderLcd();}
+function toggleShift(){isShift=!isShift;document.getElementById('btn-shift').style.background=isShift?'#f0c000':'';document.getElementById('flag-shift').classList.toggle('on',isShift);}
+
+/* ============================================================
+   十字キー
+   ============================================================ */
+function navLeft(){
+  if(fracMode){
+    if(fracInDenom&&fracCursor>0){fracCursor--;renderFracLcd();}
+    else if(fracInDenom){fracInDenom=false;renderFracLcd();}
+    return;
+  }
+  if(activeVar!==null&&curFml){if(varCursor>0){varCursor--;renderVarLcd();}return;}
+  if(cursor>0){cursor--;renderLcd();}
+}
+function navRight(){
+  if(fracMode){
+    if(!fracInDenom){fracInDenom=true;fracCursor=0;renderFracLcd();}
+    else if(fracCursor<fracDenom.length){fracCursor++;renderFracLcd();}
+    return;
+  }
+  if(activeVar!==null&&curFml){if(varCursor<varTokens.length){varCursor++;renderVarLcd();}return;}
+  if(cursor<tokens.length){cursor++;renderLcd();}
+}
+function navUp(){}
+function navDown(){}
+
+/* ============================================================
+   = 計算
+   ============================================================ */
+function kEqual(){
+  if(fracMode){fracCommit();return;}
+  if(activeVar!==null&&curFml){commitVar();return;}
+  const expr=tokens.join('');if(!expr)return;
+  // 式に = が含まれる場合、計算可能な数式部分を抽出して計算
+  // 例: "RB = 5/2 = 2.5 kN" → "5/2" を優先
+  let calcExpr=expr;
+  if(expr.indexOf('=')>=0){
+    const parts=expr.split('=');
+    // 演算子を含む部分を優先（単純な数値より式を優先）
+    let best='';
+    for(let i=0;i<parts.length;i++){
+      const candidate=parts[i].trim().replace(/[a-zA-Z·\s]+$/,'').trim();
+      if(candidate&&/[\d+\-×÷*/^().√]/.test(candidate)){
+        // 演算子を含む場合は優先
+        if(/[+\-×÷*/^]/.test(candidate)){best=candidate;break;}
+        if(!best)best=candidate;
+      }
+    }
+    if(best)calcExpr=best;
+  }
+  try{
+    const r=Function('"use strict";function deg2rad(x){return x*Math.PI/180;}return('+evalExprStr(calcExpr)+')')();
+    lastResult=typeof r==='number'?parseFloat(r.toFixed(10)):r;
+    ans=lastResult;addHistory(expr,lastResult,expr);renderLcd();flashResult();
+  }catch(e){lastResult='Syntax ERROR';renderLcd();}
+}
+function evalExprStr(expr){
+  let s=expr.replace(/²/g,'^2').replace(/³/g,'^3').replace(/⁴/g,'^4').replace(/⁵/g,'^5').replace(/⁶/g,'^6').replace(/⁷/g,'^7').replace(/⁸/g,'^8').replace(/⁹/g,'^9');
+  s=s.replace(/×10\^/g,'e').replace(/×/g,'*').replace(/÷/g,'/').replace(/π/g,'Math.PI').replace(/\^/g,'**').replace(/Ans/g,String(ans));
+  // 逆三角関数・絶対値
+  s=s.replace(/asin\(/g,'__ASIN__(').replace(/acos\(/g,'__ACOS__(').replace(/atan\(/g,'__ATAN__(').replace(/abs\(/g,'Math.abs(');
+  s=s.replace(/sin\(/g,'__SIN__(').replace(/cos\(/g,'__COS__(').replace(/tan\(/g,'__TAN__(').replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(').replace(/√\(/g,'Math.sqrt(');
+  // e^( → Math.exp(
+  s=s.replace(/\be\*\*/g,'Math.exp(').replace(/Math\.exp\(([^)]*)\)/g,'Math.exp($1)');
+  s=s.replace(/\b2\.718281828\*\*/g,'Math.exp(');
+  s=expandTrig(s,'__SIN__','Math.sin');s=expandTrig(s,'__COS__','Math.cos');s=expandTrig(s,'__TAN__','Math.tan');
+  // 逆三角関数（ラジアン→度に変換して出力）
+  s=s.replace(/__ASIN__\(([^)]*)\)/g,'(Math.asin($1)*180/Math.PI)');
+  s=s.replace(/__ACOS__\(([^)]*)\)/g,'(Math.acos($1)*180/Math.PI)');
+  s=s.replace(/__ATAN__\(([^)]*)\)/g,'(Math.atan($1)*180/Math.PI)');
+  const op=(s.match(/\(/g)||[]).length,cl=(s.match(/\)/g)||[]).length;
+  for(let i=0;i<op-cl;i++)s+=')';
+  return s;
+}
+function expandTrig(s,ph,fn){
+  let r='',i=0;
+  while(i<s.length){const idx=s.indexOf(ph+'(',i);if(idx===-1){r+=s.slice(i);break;}r+=s.slice(i,idx)+fn+'(deg2rad(';let d=1,j=idx+ph.length+1;while(j<s.length&&d>0){if(s[j]==='(')d++;else if(s[j]===')')d--;j++;}r+=s.slice(idx+ph.length+1,j-1)+'))';i=j;}
+  return r;
+}
+
+/* ============================================================
+   LCD 描画
+   ============================================================ */
+function renderLcd(){
+  const before=tokens.slice(0,cursor).join(''),after=tokens.slice(cursor).join('');
+  document.getElementById('lcd-expr').innerHTML=escHtml(before)+'<span class="cursor"></span>'+escHtml(after);
+  document.getElementById('lcd-result').textContent=lastResult!==null?fmtNum(lastResult):'';
+}
+function renderVarLcd(){
+  const before=varTokens.slice(0,varCursor).join(''),after=varTokens.slice(varCursor).join('');
+  document.getElementById('lcd-expr').innerHTML=escHtml(activeVar+' = ')+escHtml(before)+'<span class="cursor"></span>'+escHtml(after);
+  document.getElementById('lcd-result').textContent='';
+  rFscreen();rVpanel();
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtNum(n){
+  if(typeof n==='string')return n;if(!isFinite(n))return 'Math ERROR';if(n===0)return '0';
+  const a=Math.abs(n);
+  if(a>=1e10||(a<1e-4&&a>0))return n.toExponential(6).replace('e+','×10^').replace('e-','×10^-');
+  return parseFloat(n.toFixed(8)).toString();
+}
+function flashResult(){const el=document.getElementById('lcd-result');el.style.color='#2a8a2a';setTimeout(()=>el.style.color='',300);}
+
+/* ============================================================
+   変数確定・公式計算
+   ============================================================ */
+function commitVar(){
+  if(!curFml||!activeVar)return;
+  const expr=varTokens.join('');if(!expr)return;
+  let evaluated=expr;
+  try{
+    const r=Function('"use strict";function deg2rad(x){return x*Math.PI/180;}return('+evalExprStr(expr)+')')();
+    if(typeof r==='number'&&isFinite(r))evaluated=String(parseFloat(r.toFixed(10)));
+  }catch(e){}
+  varVals[activeVar]=evaluated;varTokens=[];varCursor=0;
+  rFscreen();rVpanel();
+  const i=curFml.vars.findIndex(v=>v.s===activeVar);
+  const next=curFml.vars.slice(i+1).find(v=>!varVals[v.s]);
+  if(next){activeVar=next.s;varTokens=[];varCursor=0;renderVarLcd();}
+  else{activeVar=null;kCalcFormula();}
+}
+function kCalcFormula(){
+  if(!curFml)return;
+  for(const v of curFml.vars){if(!varVals[v.s]){activeVar=v.s;varTokens=[];varCursor=0;renderVarLcd();return;}}
+  const num={};curFml.vars.forEach(v=>num[v.s]=parseFloat(varVals[v.s]));
+  const res=curFml.calc(num);
+  const main=res[0];
+  if(main){
+    lastResult=typeof main.v==='number'?parseFloat(main.v.toFixed(8)):main.v;
+    ans=typeof lastResult==='number'?lastResult:ans;
+    const noteStr=main.note?'  '+main.note:'';
+    // 計算式を生成: 公式 = 実数値入り式 = 結果
+    const lhs=(main.formula||'').split('=')[0].trim();
+    let rhs=(main.formula||'').replace(/^[^=]+=\s*/,'');
+    // 単位変換マップ（変数名→mm/N系への変換値）
+    const unitConv={
+      'l':v=>parseFloat(v)*1e3,       // m → mm
+      'a':v=>parseFloat(v)*1e3,       // m → mm
+      'b':v=>parseFloat(v)*1e3,       // m → mm
+      'lk':v=>parseFloat(v)*1e3,      // m → mm
+      'E':v=>parseFloat(v)*1e3,       // kN/mm² → N/mm²
+      'I':v=>parseFloat(v)*1e4,       // ×10⁴mm⁴ → mm⁴
+      'P':v=>parseFloat(v)*1e3,       // kN → N
+      'M0':v=>parseFloat(v)*1e6,      // kN·m → N·mm
+      // w[kN/m]=N/mm, Z[×10³mm³], fb[N/mm²], N[kN], A[mm²] はそのまま
+    };
+    const sortedVars=[...curFml.vars].sort((a,b)=>b.s.length-a.s.length);
+    const phMap={};
+    // display用（入力値のまま）とraw用（単位変換済み）の2つを作成
+    let rhsRaw=rhs;
+    sortedVars.forEach((v,i)=>{
+      const ph='__PH'+i+'__';
+      const dispVal=String(varVals[v.s]);
+      const rawVal=unitConv[v.s]?String(unitConv[v.s](varVals[v.s])):dispVal;
+      phMap[ph]={disp:dispVal, raw:rawVal};
+      const esc=v.s.replace(/[-/\\^$*+?.()|\[\]{}]/g,'\\$&');
+      rhs=rhs.replace(new RegExp(esc,'g'),ph);
+      rhsRaw=rhsRaw.replace(new RegExp(esc,'g'),ph);
+    });
+    // display用: 隣接プレースホルダー間に×挿入、入力値を使う
+    rhs=rhs.replace(/(__PH\d+__)(__PH\d+__)/g,'$1×$2');
+    rhs=rhs.replace(/(\d)(__PH\d+__)/g,'$1×$2');
+    rhs=rhs.replace(/(__PH\d+__)(\d)/g,'$1×$2');
+    Object.keys(phMap).forEach(function(ph){
+      rhs=rhs.replace(new RegExp(ph.replace(/[-/\\^$*+?.()|\[\]{}]/g,'\\$&'),'g'),phMap[ph].disp);
+    });
+    // raw用: 単位変換済みの値を使う
+    rhsRaw=rhsRaw.replace(/(__PH\d+__)(__PH\d+__)/g,'$1×$2');
+    rhsRaw=rhsRaw.replace(/(\d)(__PH\d+__)/g,'$1×$2');
+    rhsRaw=rhsRaw.replace(/(__PH\d+__)(\d)/g,'$1×$2');
+    Object.keys(phMap).forEach(function(ph){
+      rhsRaw=rhsRaw.replace(new RegExp(ph.replace(/[-/\\^$*+?.()|\[\]{}]/g,'\\$&'),'g'),phMap[ph].raw);
+    });
+    const calcExprDisplay=lhs+' = '+rhs+' = '+fmtNum(lastResult)+' '+main.u;
+    const calcExprRaw=rhsRaw;
+    const varStr=curFml.vars.map(v=>(v.s)+'='+(varVals[v.s])).join(', ');
+    const histLabel='['+(curFml.name)+' '+(curFml.itemName||'')+'] '+(varStr);
+    addHistory(calcExprDisplay, (fmtNum(lastResult))+' '+(main.u)+(noteStr), histLabel, calcExprDisplay, calcExprRaw);
+    // LCD式欄にトークンとして設定（カーソル移動・編集可能）
+    tokens=calcExprDisplay.split('');
+    cursor=tokens.length;
+    lastResult=lastResult;
+    renderLcd();flashResult();
+  }
+  activeVar=null;rFscreen();rVpanel();
+}
+
+/* ============================================================
+   起動
+   ============================================================ */
+loadHistory();renderHistory();rFscreen();rVpanel();renderLcd();
+</script>
+</html>
