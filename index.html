@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="構造計算">
 <meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
 <title>構造計算電卓</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
@@ -1490,5 +1491,10 @@ function kCalcFormula(){
    起動
    ============================================================ */
 loadHistory();renderHistory();rFscreen();rVpanel();renderLcd();
+
+// Service Worker 登録（PWAオフライン対応）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </html>
