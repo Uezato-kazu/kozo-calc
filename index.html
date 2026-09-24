@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="構造計算">
 <meta name="theme-color" content="#ffffff">
-<link rel="manifest" href="manifest.json">
 <title>構造計算電卓</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
@@ -59,11 +58,20 @@ html,body{height:100%;background:#e8e8e8;font-family:'Helvetica Neue',Arial,sans
 .lcd-flag.on{color:#333;font-weight:bold;}
 .btn-paste{padding:2px 7px;border-radius:6px;border:1px solid #aaccaa;background:#f0fff0;color:#2a6a2a;font-size:10px;font-weight:600;cursor:pointer;}
 .btn-paste:active{background:#d0efd0;}
-.lcd-expr-wrap{min-height:24px;margin-bottom:3px;overflow:hidden;}
-.lcd-expr{font-family:'Courier New',monospace;font-size:15px;color:#333;line-height:1.5;word-break:break-all;white-space:pre-wrap;display:inline;}
-.cursor{display:inline-block;width:2px;height:16px;background:#333;vertical-align:middle;animation:blink .8s step-end infinite;}
+.lcd-expr-wrap{min-height:28px;margin-bottom:3px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+.lcd-expr-wrap::-webkit-scrollbar{display:none;}
+.lcd-expr{font-family:'Courier New',monospace;font-size:15px;color:#333;line-height:2;word-break:normal;white-space:nowrap;display:inline-flex;align-items:center;gap:0;}
+.cursor{display:inline-block;width:3px;height:18px;background:#333;vertical-align:middle;margin:0 1px;animation:blink .8s step-end infinite;}
 @keyframes blink{50%{opacity:0;}}
 .lcd-result{font-family:'Courier New',monospace;font-size:26px;font-weight:700;color:#111;text-align:right;min-height:32px;line-height:1.2;word-break:break-all;}
+/* 自然表示：分数 */
+.nd-frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 2px;line-height:1.2;}
+.nd-num{border-bottom:1.5px solid #333;padding:0 3px;min-width:8px;text-align:center;font-size:13px;}
+.nd-den{padding:0 3px;min-width:8px;text-align:center;font-size:13px;}
+/* 自然表示：ルート */
+.nd-sqrt{display:inline-flex;align-items:center;vertical-align:middle;margin:0 1px;}
+.nd-sqrt-body{border-top:1.5px solid #333;padding:0 2px;display:inline-flex;align-items:center;font-size:14px;}
+.nd-sqrt-sym{font-size:18px;line-height:1;margin-right:-2px;align-self:flex-end;}
 
 /* ── 履歴 ── */
 .hist-bar{display:flex;align-items:center;justify-content:space-between;padding:2px 10px;flex-shrink:0;}
@@ -88,8 +96,8 @@ html,body{height:100%;background:#e8e8e8;font-family:'Helvetica Neue',Arial,sans
 /* ── 電卓本体 ── */
 .body{flex:1;overflow:hidden;background:linear-gradient(180deg,#e0e4ee 0%,#d8dce8 100%);padding:4px 5px 5px;display:flex;flex-direction:column;gap:3px;}
 .row{display:flex;gap:3px;flex:1;}
-.k{flex:1;border-radius:6px;border:none;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;transition:filter .06s,transform .06s;box-shadow:0 2px 0 rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.6) inset;}
-.k:active{filter:brightness(0.88);transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
+.k{flex:1;border-radius:6px;border:none;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;transition:filter .06s,transform .06s,box-shadow .06s;box-shadow:0 3px 0 rgba(0,0,0,0.28),0 1px 0 rgba(255,255,255,0.6) inset;}
+.k:active{filter:brightness(0.82);transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
 .k.drk{background:#c8ccd8;}.k.del{background:#e8a000;}.k.ac{background:#e8a000;}
 .k.num{background:#fff;}.k.op{background:#d0d4e0;}.k.eq{background:#3366cc;}.k.shft{background:#c0c4a0;}
 .km{font-size:16px;font-weight:600;color:#222;line-height:1;}
@@ -1380,12 +1388,36 @@ function expandTrig(s,ph,fn){
   return r;
 }
 
+
+/* ============================================================
+   自然表示変換
+   ============================================================ */
+function toNaturalHtml(expr){
+  if(!expr) return '';
+  var result='';
+  var i=0;
+  while(i<expr.length){
+    // √( の自然表示
+    if(i+1<expr.length && expr[i]==='\u221a' && expr[i+1]==='('){
+      var depth=1, j=i+2;
+      while(j<expr.length&&depth>0){if(expr[j]==='(')depth++;else if(expr[j]===')')depth--;j++;}
+      var inner=expr.slice(i+2,j-1);
+      result+='<span class="nd-sqrt"><span class="nd-sqrt-sym">\u221a</span><span class="nd-sqrt-body">'+toNaturalHtml(inner)+'</span></span>';
+      i=j;
+    } else {
+      result+=escHtml(expr[i]);
+      i++;
+    }
+  }
+  return result;
+}
+
 /* ============================================================
    LCD 描画
    ============================================================ */
 function renderLcd(){
   const before=tokens.slice(0,cursor).join(''),after=tokens.slice(cursor).join('');
-  document.getElementById('lcd-expr').innerHTML=escHtml(before)+'<span class="cursor"></span>'+escHtml(after);
+  document.getElementById('lcd-expr').innerHTML=toNaturalHtml(before)+'<span class="cursor"></span>'+toNaturalHtml(after);
   document.getElementById('lcd-result').textContent=lastResult!==null?fmtNum(lastResult):'';
 }
 function renderVarLcd(){
@@ -1491,10 +1523,5 @@ function kCalcFormula(){
    起動
    ============================================================ */
 loadHistory();renderHistory();rFscreen();rVpanel();renderLcd();
-
-// Service Worker 登録（PWAオフライン対応）
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
 </script>
 </html>
