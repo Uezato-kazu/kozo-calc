@@ -12,7 +12,9 @@
 <meta http-equiv="Expires" content="0">
 <title>構造計算電卓</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;cursor:pointer;}
+/* iOSで:activeを有効にするためbody/htmlにtouchstart属性が必要 */
+html{touch-action:manipulation;}
 html,body{height:100%;background:#e8e8e8;font-family:'Helvetica Neue',Arial,sans-serif;}
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:430px;margin:0 auto;background:#f2f2f2;border-left:1px solid #ccc;border-right:1px solid #ccc;overflow:hidden;}
 
@@ -101,6 +103,8 @@ html,body{height:100%;background:#e8e8e8;font-family:'Helvetica Neue',Arial,sans
 .row{display:flex;gap:3px;flex:1;}
 .k{flex:1;border-radius:6px;border:none;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;transition:filter .06s,transform .06s,box-shadow .06s;box-shadow:0 3px 0 rgba(0,0,0,0.28),0 1px 0 rgba(255,255,255,0.6) inset;}
 .k:active{filter:brightness(0.82);transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
+.k.pressed{filter:brightness(0.82);transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.2);}
+.nav-c.pressed{filter:brightness(0.85);}
 .k.drk{background:#c8ccd8;}.k.del{background:#e8a000;}.k.ac{background:#e8a000;}
 .k.num{background:#fff;}.k.op{background:#d0d4e0;}.k.eq{background:#3366cc;}.k.shft{background:#c0c4a0;}
 .km{font-size:16px;font-weight:600;color:#222;line-height:1;}
@@ -1526,5 +1530,24 @@ function kCalcFormula(){
    起動
    ============================================================ */
 loadHistory();renderHistory();rFscreen();rVpanel();renderLcd();
+
+// iOSでの打感（視覚フィードバック）対応
+// :active がタッチで効かない場合のためtouchstartで.pressedクラスを付与
+document.addEventListener('touchstart', function(e){
+  var el = e.target.closest('.k, .nav-c, .btn-fml-open, .btn-fml-clear, .btn-paste, .calc-item-chip');
+  if(el){
+    el.classList.add('pressed');
+    // バイブレーション（対応端末のみ）
+    if(navigator.vibrate) navigator.vibrate(10);
+  }
+}, {passive: true});
+document.addEventListener('touchend', function(e){
+  var el = e.target.closest('.k, .nav-c, .btn-fml-open, .btn-fml-clear, .btn-paste, .calc-item-chip');
+  if(el) setTimeout(function(){ el.classList.remove('pressed'); }, 150);
+}, {passive: true});
+document.addEventListener('touchcancel', function(e){
+  var el = e.target.closest('.k, .nav-c, .btn-fml-open, .btn-fml-clear, .btn-paste, .calc-item-chip');
+  if(el) el.classList.remove('pressed');
+}, {passive: true});
 </script>
 </html>
