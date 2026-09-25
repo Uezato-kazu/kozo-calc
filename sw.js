@@ -1,5 +1,5 @@
 // Service Worker for 構造計算電卓
-const CACHE_NAME = 'kozo-calc-v1';
+const CACHE_NAME = 'kozo-calc-v2';
 const ASSETS = [
   './',
   './index.html'
